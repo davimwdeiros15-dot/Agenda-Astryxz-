@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Protocolo Astryxz - Zenith Desktop</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
         :root {
             --transition-speed: 0.4s;
@@ -356,8 +357,13 @@
     let base64AvatarData = ''; 
     
     let localAudioStream = null, localWebcamStream = null, localScreenStream = null;
+    let combinedStream = null; // Stream unificado que será enviado na chamada
     let audioContext = null, analyser = null, microphoneSource = null, javascriptNode = null;
     let micAtivo = false, cameraAtiva = false, telaAtiva = false;
+
+    // Instância global do PeerJS para gerenciar WebRTC real
+    let peer = null;
+    let currentCall = null;
 
     // Canvas Animação Setup e Props adicionais para os novos temas
     const canvas = document.getElementById('fx-canvas'); 
@@ -396,7 +402,7 @@
                 } else if(origem === 'painel-conta') {
                     localStorage.setItem('astryxz_avatar_b64', base64AvatarData);
                     atualizarInterfacesDeUsuario(localStorage.getItem('astryxz_user') || "Operador");
-                    document.getElementById('upload-account-text').innerHTML = "Foto atualizada com <b>sucesso!</b>";
+                    document.getElementById('upload-account-text').innerHTML = "Foto updated com <b>sucesso!</b>";
                     injetarMensagemSistema("Sua foto de perfil foi atualizada.");
                 }
             };
@@ -422,9 +428,10 @@
 
         if(!window.sysIniciado) {
             iniciarRelogio();
-            gerarNovaPortaDinamica();
             setupCanvas();
             renderizarAgenda();
+            // Inicializar a infraestrutura do PeerJS para conexões ponto a ponto
+            initPeerConnection();
             window.sysIniciado = true;
         }
     }
@@ -495,39 +502,165 @@
         });
     }
 
-    /* PORTAS DE COMUNICAÇÃO */
-    function gerarNovaPortaDinamica() {
-        const num = Math.floor(1000 + Math.random() * 9000);
-        currentRoomCode = `ZENITH-${num}`;
-        document.getElementById('generated-code-box').textContent = currentRoomCode;
-        document.getElementById('room-id-display').textContent = `SALA: ${currentRoomCode}`;
-        if (window.sysIniciado) injetarMensagemSistema(`Nova porta de comunicação gerada: [${currentRoomCode}].`);
+    /* WEBRTC REAL - CONFIGURAÇÃO DO PEERJS */
+    function initPeerConnection() {
+        // Inicializa o Peer sem ID fixo para o PeerJS cloud gerar um hash único e limpo
+        peer = new Peer(undefined, {
+            debug: 1
+        });
+
+        peer.on('open', (id) => {
+            currentRoomCode = id;
+            document.getElementById('generated-code-box').textContent = currentRoomCode;
+            document.getElementById('room-id-display').textContent = `SUA PORTA: ${currentRoomCode}`;
+            injetarMensagemSistema(`Estação sincronizada com a Nuvem. Sua chave de conexão é [${currentRoomCode}].`);
+        });
+
+        // Evento disparado quando alguém liga para você (o anfitrião recebe a chamada)
+        peer.on('call', async (call) => {
+            injetarMensagemSistema(`Recebendo conexão de entrada na porta ativa...`);
+            currentCall = call;
+            
+            // Garante que pelo menos um stream local básico exista para responder à chamada
+            await verificarGarantiaDeStreamLocal();
+            
+            call.answer(combinedStream);
+            switchTab('voice', document.getElementById('btn-tab-voice'));
+            
+            call.on('stream', (remoteStream) => {
+                renderizarVideoDoAmigo(remoteStream, call.peer);
+            });
+
+            call.on('close', () => {
+                removerVideoDoAmigo(call.peer);
+            });
+        });
+
+        peer.on('error', (err) => {
+            console.error("Erro no canal de voz PeerJS:", err);
+            alert("Não foi possível conectar à porta informada. Verifique se o código está correto.");
+        });
     }
 
-    function conectarViaCodigoPorta() {
-        const codeInput = document.getElementById('input-join-code').value.trim().toUpperCase();
+    function gerarNovaPortaDinamica() {
+        // No PeerJS real, o ID é imutável por sessão. Mostramos e atualizamos a interface com o ID gerado.
+        if(currentRoomCode) {
+            document.getElementById('generated-code-box').textContent = currentRoomCode;
+            document.getElementById('room-id-display').textContent = `SUA PORTA: ${currentRoomCode}`;
+            injetarMensagemSistema(`Sua porta de comunicação atualizada na UI: [${currentRoomCode}]. Compartilhe com seu amigo.`);
+        }
+    }
+
+    // Função para ligar/aceder à porta do seu amigo
+    async function conectarViaCodigoPorta() {
+        const codeInput = document.getElementById('input-join-code').value.trim();
         if(!codeInput) return;
+
         document.getElementById('room-id-display').textContent = `SALA: ${codeInput}`;
         switchTab('voice', document.getElementById('btn-tab-voice'));
-        const grid = document.getElementById('voice-users-grid');
-        const amigoId = "user-" + Math.floor(Math.random() * 100);
         
-        if(!document.getElementById(amigoId)) {
-            grid.insertAdjacentHTML('beforeend', `
-                <div class="user-video-card" id="${amigoId}">
-                    <div class="voice-card-top-badges">
-                        <span class="voice-card-mic-status">🎤 Ligado</span>
-                        <button class="btn-fullscreen-card" onclick="toggleAbsoluteFullscreen('${amigoId}')">🔲</button>
-                    </div>
-                    <div class="voice-card-center-ui">
-                        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%232e1065'/></svg>" class="voice-card-avatar">
-                    </div>
-                    <span class="voice-card-name">Operador_Externo [${codeInput}]</span>
-                </div>
-            `);
-            injetarMensagemSistema(`Terminal remoto pareado na porta [${codeInput}].`);
-        }
+        injetarMensagemSistema(`Tentando pareamento WebRTC na porta remota [${codeInput}]...`);
+        
+        // Garante que o stream local exista antes de disparar a chamada externa
+        await verificarGarantiaDeStreamLocal();
+
+        const call = peer.call(codeInput, combinedStream);
+        currentCall = call;
+
+        call.on('stream', (remoteStream) => {
+            renderizarVideoDoAmigo(remoteStream, codeInput);
+        });
+
+        call.on('close', () => {
+            removerVideoDoAmigo(codeInput);
+        });
+
         document.getElementById('input-join-code').value = "";
+    }
+
+    // Auxiliar para injetar dinamicamente a box de vídeo do seu amigo remoto no Grid
+    function renderizarVideoDoAmigo(remoteStream, amigoId) {
+        const grid = document.getElementById('voice-users-grid');
+        
+        // Se já existir a box dele, removemos para evitar duplicatas
+        if(document.getElementById(amigoId)) {
+            document.getElementById(amigoId).remove();
+        }
+
+        const boxHtml = `
+            <div class="user-video-card" id="${amigoId}">
+                <div class="voice-card-top-badges">
+                    <span class="voice-card-mic-status">🎤 Conectado</span>
+                    <button class="btn-fullscreen-card" onclick="toggleAbsoluteFullscreen('${amigoId}')">🔲</button>
+                </div>
+                <video id="video-element-${amigoId}" class="video-render-element" autoplay playsinline style="display:block;"></video>
+                <span class="voice-card-name">Terminal Remoto [${amigoId.substring(0,6)}]</span>
+            </div>
+        `;
+        
+        grid.insertAdjacentHTML('beforeend', boxHtml);
+        
+        const remoteVideoEl = document.getElementById(`video-element-${amigoId}`);
+        remoteVideoEl.srcObject = remoteStream;
+        
+        injetarMensagemSistema(`Sucesso! Conexão ponto-a-ponto estabelecida com o terminal remoto.`);
+    }
+
+    function removerVideoDoAmigo(amigoId) {
+        const el = document.getElementById(amigoId);
+        if(el) {
+            el.remove();
+            injetarMensagemSistema(`O terminal remoto desconectou da chamada.`);
+        }
+    }
+
+    // Cria um stream de segurança em branco caso o usuário ligue sem ligar mic/camera primeiro
+    async function verificarGarantiaDeStreamLocal() {
+        if (!combinedStream) {
+            try {
+                // Tenta capturar o áudio por padrão
+                localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                combinedStream = localAudioStream;
+                micAtivo = true;
+                document.getElementById('btn-voice-mic').classList.add('active-green');
+                document.getElementById('voice-status-label').textContent = "🎤 Ligado";
+            } catch(e) {
+                // Se não houver microfone, cria um oscilador de áudio silencioso via WebAudio para manter o WebRTC de pé
+                const mockCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const mockDst = mockCtx.createMediaStreamDestination();
+                combinedStream = mockDst.stream;
+            }
+        }
+    }
+
+    function atualizarStreamUnificado() {
+        const tracks = [];
+        if (localAudioStream && localAudioStream.getAudioTracks().length > 0) {
+            tracks.push(localAudioStream.getAudioTracks()[0]);
+        }
+        if (telaAtiva && localScreenStream) {
+            tracks.push(localScreenStream.getVideoTracks()[0]);
+        } else if (cameraAtiva && localWebcamStream) {
+            tracks.push(localWebcamStream.getVideoTracks()[0]);
+        }
+        
+        // Constrói o novo MediaStream atualizado
+        combinedStream = new MediaStream(tracks);
+        
+        // Se houver uma chamada em andamento, substitui os tracks em tempo real (Renegotiation)
+        if (currentCall && currentCall.peerConnection) {
+            const senders = currentCall.peerConnection.getSenders();
+            senders.forEach(sender => {
+                if (sender.track && sender.track.kind === 'video') {
+                    const videoTrack = tracks.find(t => t.kind === 'video');
+                    if (videoTrack) sender.replaceTrack(videoTrack);
+                }
+                if (sender.track && sender.track.kind === 'audio') {
+                    const audioTrack = tracks.find(t => t.kind === 'audio');
+                    if (audioTrack) sender.replaceTrack(audioTrack);
+                }
+            });
+        }
     }
 
     function toggleAbsoluteFullscreen(cardId) {
@@ -547,6 +680,7 @@
             try {
                 localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 micAtivo = true; btn.classList.add('active-green'); label.textContent = "🎤 Ligado";
+                
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = audioContext.createAnalyser(); microphoneSource = audioContext.createMediaStreamSource(localAudioStream);
                 javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
@@ -557,11 +691,13 @@
                     let values = 0; for (let i = 0; i < array.length; i++) { values += array[i]; }
                     if ((values / array.length) > 12) { selfCard.classList.add('speaking'); } else { selfCard.classList.remove('speaking'); }
                 };
-            } catch (err) { alert("Microfone indisponível."); }
+                atualizarStreamUnificado();
+            } catch (err) { alert("Microfone indisponível ou permissão negada."); }
         } else {
             if(localAudioStream) localAudioStream.getTracks().forEach(track => track.stop());
             if(javascriptNode) javascriptNode.disconnect();
             micAtivo = false; btn.classList.remove('active-green'); label.textContent = "🎤 Desligado"; selfCard.classList.remove('speaking');
+            atualizarStreamUnificado();
         }
     }
 
@@ -572,11 +708,13 @@
                 localWebcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
                 videoEl.srcObject = localWebcamStream; videoEl.style.display = 'block'; avatarBox.style.display = 'none';
                 cameraAtiva = true; btn.classList.add('active-green');
-            } catch (err) { alert("Câmera não encontrada."); }
+                atualizarStreamUnificado();
+            } catch (err) { alert("Câmera não encontrada ou permissão recusada."); }
         } else {
             if (localWebcamStream) localWebcamStream.getTracks().forEach(track => track.stop());
             videoEl.style.display = 'none'; if(!telaAtiva) avatarBox.style.display = 'flex';
             cameraAtiva = false; btn.classList.remove('active-green');
+            atualizarStreamUnificado();
         }
     }
 
@@ -588,6 +726,7 @@
                 videoEl.srcObject = localScreenStream; videoEl.style.display = 'block'; avatarBox.style.display = 'none';
                 telaAtiva = true; btn.classList.add('active-green');
                 localScreenStream.getVideoTracks()[0].onended = () => { apagarApresentacaoTela(); };
+                atualizarStreamUnificado();
             } catch (err) { console.error(err); }
         } else { apagarApresentacaoTela(); }
     }
@@ -597,20 +736,33 @@
         if (localScreenStream) localScreenStream.getTracks().forEach(track => track.stop());
         videoEl.style.display = 'none'; if (!cameraAtiva) avatarBox.style.display = 'flex';
         telaAtiva = false; btn.classList.remove('active-green');
+        atualizarStreamUnificado();
     }
 
     function sairDaCall() {
+        if(currentCall) {
+            currentCall.close();
+        }
         if(localAudioStream) localAudioStream.getTracks().forEach(track => track.stop());
         if(localWebcamStream) localWebcamStream.getTracks().forEach(track => track.stop());
         if(localScreenStream) localScreenStream.getTracks().forEach(track => track.stop());
+        
         document.getElementById('webcam-stream-element').style.display = 'none';
         document.getElementById('screen-stream-element').style.display = 'none';
         document.getElementById('voice-avatar-container-self').style.display = 'flex';
+        
+        // Remove cards de vídeos remotos
+        document.querySelectorAll('.user-video-card').forEach(card => {
+            if(card.id !== 'voice-card-self') card.remove();
+        });
+
         micAtivo = cameraAtiva = telaAtiva = false;
+        combinedStream = null;
         document.getElementById('btn-voice-mic').classList.remove('active-green');
         document.getElementById('btn-voice-camera').classList.remove('active-green');
         document.getElementById('btn-voice-screen').classList.remove('active-green');
         switchTab('notes', document.getElementById('btn-tab-notes'));
+        injetarMensagemSistema("Conexão encerrada pelo operador.");
     }
 
     function switchTab(tabId, btnElement) {
@@ -700,7 +852,6 @@
 
         // 1. DESENHAR FUNDOS COMPLEXOS ESTÁTICOS/ILUSTRAÇÕES VIA CÓDIGO ANTES DAS PARTÍCULAS
         if (currentTheme === 'floresta') {
-            // Desenhar silhuetas de Árvores ao fundo do Campo
             ctx.fillStyle = "rgba(4, 26, 8, 0.4)";
             for(let i = 0; i < canvas.width; i += 120) {
                 ctx.beginPath();
@@ -708,29 +859,23 @@
                 ctx.lineTo(i + 40, canvas.height - 180);
                 ctx.lineTo(i + 80, canvas.height);
                 ctx.fill();
-                // Troncos
                 ctx.fillStyle = "rgba(2, 12, 4, 0.5)";
                 ctx.fillRect(i + 36, canvas.height - 60, 8, 60);
                 ctx.fillStyle = "rgba(4, 26, 8, 0.4)";
             }
         } 
         else if (currentTheme === 'sakura') {
-            // Desenhar Silhueta de um Templo Chinês/Japonês ao Fundo
             ctx.fillStyle = "rgba(24, 4, 10, 0.5)";
             let cx = canvas.width / 2 - 150;
             let cy = canvas.height - 250;
-            // Base do templo
             ctx.fillRect(cx + 30, cy + 120, 240, 130);
-            // Telhado inferior
             ctx.beginPath();
             ctx.moveTo(cx, cy + 120);
             ctx.quadraticCurveTo(cx + 150, cy + 100, cx + 300, cy + 120);
             ctx.lineTo(cx + 260, cy + 80);
             ctx.lineTo(cx + 40, cy + 80);
             ctx.closePath(); ctx.fill();
-            // Andar de cima
             ctx.fillRect(cx + 60, cy + 30, 180, 50);
-            // Telhado Superior do Templo
             ctx.beginPath();
             ctx.moveTo(cx + 20, cy + 30);
             ctx.quadraticCurveTo(cx + 150, cy, cx + 280, cy + 30);
@@ -739,23 +884,19 @@
             ctx.closePath(); ctx.fill();
         } 
         else if (currentTheme === 'cyberpunk') {
-            // Desenhar Silhueta Abstrata de um Dragão Oriental Amarelo no Fundo de forma Vetorial
             ctx.strokeStyle = "rgba(255, 255, 0, 0.05)";
             ctx.lineWidth = 12;
             ctx.beginPath();
-            // Corpo serpentinado cobrindo a tela
             ctx.moveTo(canvas.width * 0.1, canvas.height * 0.8);
             ctx.bezierCurveTo(canvas.width * 0.3, canvas.height * 0.2, canvas.width * 0.5, canvas.height * 0.9, canvas.width * 0.7, canvas.height * 0.3);
             ctx.quadraticCurveTo(canvas.width * 0.85, canvas.height * 0.1, canvas.width * 0.9, canvas.height * 0.4);
             ctx.stroke();
             
-            // Cabeça do Dragão e Detalhes
             ctx.fillStyle = "rgba(255, 255, 0, 0.04)";
             ctx.beginPath();
             ctx.arc(canvas.width * 0.9, canvas.height * 0.4, 50, 0, Math.PI * 2);
             ctx.fill();
 
-            // Raios Amarelos Aleatórios (Efeito tempestade elétrica Cyber)
             if (Math.random() < 0.15) {
                 ctx.strokeStyle = "rgba(255, 255, 0, 0.4)";
                 ctx.lineWidth = Math.random() * 3 + 1;
@@ -769,7 +910,6 @@
             }
         }
         else if (currentTheme === 'oceano') {
-            // Ondas Orgânicas Fluidas de fundo
             waveOffset += 0.015;
             ctx.fillStyle = "rgba(0, 32, 64, 0.3)";
             ctx.beginPath();
@@ -782,17 +922,14 @@
             ctx.closePath(); ctx.fill();
         }
         else if (currentTheme === 'nuke') {
-            // Desenhar Logo Central de Radiação Tóxica Verde
             let midX = canvas.width / 2;
             let midY = canvas.height / 2;
             ctx.strokeStyle = "rgba(57, 255, 20, 0.04)";
             ctx.fillStyle = "rgba(57, 255, 20, 0.03)";
             
-            // Círculo externo
             ctx.lineWidth = 6;
             ctx.beginPath(); ctx.arc(midX, midY, 140, 0, Math.PI*2); ctx.stroke();
             
-            // Abas de hélice da radiação
             for(let a=0; a<3; a++) {
                 let startAng = (a * 120 * Math.PI / 180) + (Date.now()/5000);
                 let endAng = startAng + (60 * Math.PI / 180);
@@ -801,29 +938,25 @@
                 ctx.arc(midX, midY, 120, startAng, endAng);
                 ctx.closePath(); ctx.fill();
             }
-            // Centro protetor
             ctx.fillStyle = "rgba(8, 13, 2, 1)";
             ctx.beginPath(); ctx.arc(midX, midY, 35, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = "rgba(57, 255, 20, 0.04)";
             ctx.beginPath(); ctx.arc(midX, midY, 25, 0, Math.PI*2); ctx.fill();
 
-            // Bombas de Esgoto Líquido / Tonéis nas laterais inferiores
             ctx.fillStyle = "rgba(25, 45, 10, 0.5)";
-            ctx.fillRect(40, canvas.height - 140, 70, 140); // Bomba Esquerda
-            ctx.fillRect(canvas.width - 110, canvas.height - 140, 70, 140); // Bomba Direita
+            ctx.fillRect(40, canvas.height - 140, 70, 140); 
+            ctx.fillRect(canvas.width - 110, canvas.height - 140, 70, 140); 
             ctx.fillStyle = "rgba(57, 255, 20, 0.3)";
-            ctx.fillRect(45, canvas.height - 130, 60, 10); // Detalhe verde vazando líquido
+            ctx.fillRect(45, canvas.height - 130, 60, 10); 
             ctx.fillRect(canvas.width - 105, canvas.height - 130, 60, 10);
         }
 
-        // 2. RENDERIZAR E MOVER AS PARTÍCULAS DE ACORDO COM O TEMA ESCOLHIDO
+        // 2. RENDERIZAR E MOVER AS PARTÍCULAS
         particles.forEach(p => {
             p.x += p.vx; 
             p.y += p.vy;
 
-            // Comportamentos e estilizações customizadas
             if (currentTheme === 'sakura') {
-                // Pétalas de Sakura caem de lado
                 p.vx = 0.5 + Math.sin(p.angle) * 0.2;
                 ctx.fillStyle = `rgba(244, 63, 94, ${p.weight})`;
                 ctx.beginPath();
@@ -831,7 +964,6 @@
                 ctx.fill();
             } 
             else if (currentTheme === 'floresta') {
-                // Folhas verdes caindo no campo
                 p.vx = Math.sin(p.angle) * 0.3;
                 ctx.fillStyle = `rgba(16, 185, 129, ${p.weight + 0.2})`;
                 ctx.beginPath();
@@ -839,7 +971,6 @@
                 ctx.fill();
             } 
             else if (currentTheme === 'oceano') {
-                // Bolhas subindo de baixo para cima
                 p.vy = -Math.abs(p.vy) - 0.2;
                 ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
                 ctx.lineWidth = 1;
@@ -848,12 +979,10 @@
                 ctx.stroke();
             } 
             else if (currentTheme === 'cyberpunk') {
-                // Poeira binária amarela brilhante
                 ctx.fillStyle = "rgba(255, 255, 0, 0.7)";
                 ctx.fillRect(p.x, p.y, p.size, p.size);
             }
             else if (currentTheme === 'nuke') {
-                // Fumaça/Gás radioativo verde subindo das bombas
                 p.vy = -Math.abs(p.vy) - 0.4;
                 p.vx += (Math.random() - 0.5) * 0.3;
                 ctx.fillStyle = `rgba(57, 255, 20, ${p.weight * 0.4})`;
@@ -862,14 +991,12 @@
                 ctx.fill();
             }
             else {
-                // Aurora / Padrão Estelar comum
                 ctx.beginPath(); 
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); 
                 ctx.fillStyle = 'rgba(255,255,255,0.15)'; 
                 ctx.fill();
             }
 
-            // Loop das partículas pelas bordas
             if(p.x < 0) p.x = canvas.width; 
             if(p.x > canvas.width) p.x = 0;
             if(p.y < 0) p.y = canvas.height; 
@@ -884,5 +1011,3 @@
 </script>
 </body>
 </html>
-
-124
