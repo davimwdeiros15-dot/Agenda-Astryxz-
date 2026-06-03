@@ -144,7 +144,7 @@
         .chat-header-title { background: rgba(0,0,0,0.2); padding: 14px 18px; font-size: 13px; font-weight: 700; color: #fff; border-bottom: 1px solid rgba(0,0,0,0.2); }
         .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
         .chat-msg { display: flex; gap: 12px; align-items: flex-start; }
-        .chat-msg-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.05); }
+        .chat-msg-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
         .chat-msg-content { flex: 1; }
         .chat-msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
         .chat-msg-author { font-size: 14px; font-weight: 600; color: var(--highlight); }
@@ -298,7 +298,7 @@
                         </div>
                         
                         <div class="account-edit-box">
-                            <h3>Modificar Identidade</h3>
+                            <h3>Modificar Identity</h3>
                             <div style="display: flex; gap: 8px;">
                                 <input type="text" id="edit-account-name" placeholder="Inserir novo nome..." style="text-align: left;">
                                 <button class="btn-prime" style="width:auto; white-space:nowrap; padding:0 16px;" onclick="atualizarNomeInstantaneo()">Mudar Nome</button>
@@ -357,19 +357,20 @@
     let base64AvatarData = ''; 
     
     let localAudioStream = null, localWebcamStream = null, localScreenStream = null;
-    let combinedStream = null; // Stream unificado que será enviado na chamada
+    let combinedStream = null; 
     let audioContext = null, analyser = null, microphoneSource = null, javascriptNode = null;
     let micAtivo = false, cameraAtiva = false, telaAtiva = false;
 
-    // Instância global do PeerJS para gerenciar WebRTC real
     let peer = null;
     let currentCall = null;
+    let dataConnection = null; // Canal de dados ativo com o amigo remoto
 
-    // Canvas Animação Setup e Props adicionais para os novos temas
+    // Canvas Animação Setup
     const canvas = document.getElementById('fx-canvas'); 
     const ctx = canvas.getContext('2d'); 
     let particles = [];
-    let waveOffset = 0; // Para as ondas do Oceano
+    let waveOffset = 0; 
+    let auroraTime = 0; // Controla o tempo/movimento das ondas de aurora boreal
 
     window.addEventListener('DOMContentLoaded', () => {
         const salvoUser = localStorage.getItem('astryxz_user');
@@ -404,6 +405,11 @@
                     atualizarInterfacesDeUsuario(localStorage.getItem('astryxz_user') || "Operador");
                     document.getElementById('upload-account-text').innerHTML = "Foto updated com <b>sucesso!</b>";
                     injetarMensagemSistema("Sua foto de perfil foi atualizada.");
+                    
+                    // Se estiver em uma conexão de dados ativa, envia o avatar atualizado
+                    if(dataConnection && dataConnection.open) {
+                        dataConnection.send({ type: 'identity', name: localStorage.getItem('astryxz_user'), avatar: base64AvatarData });
+                    }
                 }
             };
             reader.readAsDataURL(input.files[0]);
@@ -430,7 +436,6 @@
             iniciarRelogio();
             setupCanvas();
             renderizarAgenda();
-            // Inicializar a infraestrutura do PeerJS para conexões ponto a ponto
             initPeerConnection();
             window.sysIniciado = true;
         }
@@ -442,6 +447,10 @@
         localStorage.setItem('astryxz_user', novoNome);
         atualizarInterfacesDeUsuario(novoNome);
         injetarMensagemSistema(`Nome operacional alterado para: "${novoNome}".`);
+        
+        if(dataConnection && dataConnection.open) {
+            dataConnection.send({ type: 'identity', name: novoNome, avatar: base64AvatarData });
+        }
     }
 
     function atualizarInterfacesDeUsuario(nome) {
@@ -504,10 +513,7 @@
 
     /* WEBRTC REAL - CONFIGURAÇÃO DO PEERJS */
     function initPeerConnection() {
-        // Inicializa o Peer sem ID fixo para o PeerJS cloud gerar um hash único e limpo
-        peer = new Peer(undefined, {
-            debug: 1
-        });
+        peer = new Peer(undefined, { debug: 1 });
 
         peer.on('open', (id) => {
             currentRoomCode = id;
@@ -516,21 +522,23 @@
             injetarMensagemSistema(`Estação sincronizada com a Nuvem. Sua chave de conexão é [${currentRoomCode}].`);
         });
 
-        // Evento disparado quando alguém liga para você (o anfitrião recebe a chamada)
+        // Evento para quando o canal de texto/dados é aberto vindo do seu amigo
+        peer.on('connection', (conn) => {
+            setupDataChannel(conn);
+        });
+
+        // Evento disparado quando alguém liga para você
         peer.on('call', async (call) => {
             injetarMensagemSistema(`Recebendo conexão de entrada na porta ativa...`);
             currentCall = call;
             
-            // Garante que pelo menos um stream local básico exista para responder à chamada
             await verificarGarantiaDeStreamLocal();
-            
             call.answer(combinedStream);
             switchTab('voice', document.getElementById('btn-tab-voice'));
             
             call.on('stream', (remoteStream) => {
                 renderizarVideoDoAmigo(remoteStream, call.peer);
             });
-
             call.on('close', () => {
                 removerVideoDoAmigo(call.peer);
             });
@@ -543,7 +551,6 @@
     }
 
     function gerarNovaPortaDinamica() {
-        // No PeerJS real, o ID é imutável por sessão. Mostramos e atualizamos a interface com o ID gerado.
         if(currentRoomCode) {
             document.getElementById('generated-code-box').textContent = currentRoomCode;
             document.getElementById('room-id-display').textContent = `SUA PORTA: ${currentRoomCode}`;
@@ -551,7 +558,7 @@
         }
     }
 
-    // Função para ligar/aceder à porta do seu amigo
+    // Ligar/Aceder à porta do seu amigo remoto
     async function conectarViaCodigoPorta() {
         const codeInput = document.getElementById('input-join-code').value.trim();
         if(!codeInput) return;
@@ -561,7 +568,10 @@
         
         injetarMensagemSistema(`Tentando pareamento WebRTC na porta remota [${codeInput}]...`);
         
-        // Garante que o stream local exista antes de disparar a chamada externa
+        // Abre o canal de dados para troca de informações de perfil e chat real
+        const conn = peer.connect(codeInput);
+        setupDataChannel(conn);
+
         await verificarGarantiaDeStreamLocal();
 
         const call = peer.call(codeInput, combinedStream);
@@ -570,7 +580,6 @@
         call.on('stream', (remoteStream) => {
             renderizarVideoDoAmigo(remoteStream, codeInput);
         });
-
         call.on('close', () => {
             removerVideoDoAmigo(codeInput);
         });
@@ -578,14 +587,56 @@
         document.getElementById('input-join-code').value = "";
     }
 
-    // Auxiliar para injetar dinamicamente a box de vídeo do seu amigo remoto no Grid
+    // Configura e gerencia o canal de dados em tempo real (Chat real e Perfis)
+    function setupDataChannel(conn) {
+        dataConnection = conn;
+        
+        dataConnection.on('open', () => {
+            // Assim que o canal abre, envia os dados locais para o amigo mapear na interface dele
+            dataConnection.send({
+                type: 'identity',
+                name: localStorage.getItem('astryxz_user') || "Operador",
+                avatar: base64AvatarData
+            });
+        });
+
+        dataConnection.on('data', (data) => {
+            if(data && data.type === 'identity') {
+                // Guarda temporariamente os dados do amigo remoto na estrutura DOM
+                const amigoCard = document.getElementById(conn.peer);
+                if(amigoCard) {
+                    const nameLabel = amigoCard.querySelector('.voice-card-name');
+                    if(nameLabel) nameLabel.textContent = data.name;
+                }
+                // Atribui propriedades customizadas ao objeto de conexão para usar no chat secundário
+                dataConnection.peerName = data.name;
+                dataConnection.peerAvatar = data.avatar;
+            }
+            if(data && data.type === 'chat') {
+                const time = new Date().toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'});
+                document.getElementById('chat-screen').insertAdjacentHTML('beforeend', `
+                    <div class="chat-msg">
+                        <img src="${dataConnection.peerAvatar || base64AvatarData}" class="chat-msg-avatar">
+                        <div class="chat-msg-content">
+                            <div class="chat-msg-header"><span class="chat-msg-author">${dataConnection.peerName || 'Terminal Remoto'}</span><span class="chat-msg-time">Hoje às ${time}</span></div>
+                            <div class="chat-msg-text">${data.message.replace(/</g, "&lt;")}</div>
+                        </div>
+                    </div>
+                `);
+                const s = document.getElementById('chat-screen'); s.scrollTop = s.scrollHeight;
+            }
+        });
+    }
+
+    // Auxiliar para injetar dinamicamente a box de vídeo do amigo remoto no Grid
     function renderizarVideoDoAmigo(remoteStream, amigoId) {
         const grid = document.getElementById('voice-users-grid');
         
-        // Se já existir a box dele, removemos para evitar duplicatas
         if(document.getElementById(amigoId)) {
             document.getElementById(amigoId).remove();
         }
+
+        const amigoNomeInicial = (dataConnection && dataConnection.peer === amigoId && dataConnection.peerName) ? dataConnection.peerName : `Terminal Remoto [${amigoId.substring(0,6)}]`;
 
         const boxHtml = `
             <div class="user-video-card" id="${amigoId}">
@@ -594,7 +645,7 @@
                     <button class="btn-fullscreen-card" onclick="toggleAbsoluteFullscreen('${amigoId}')">🔲</button>
                 </div>
                 <video id="video-element-${amigoId}" class="video-render-element" autoplay playsinline style="display:block;"></video>
-                <span class="voice-card-name">Terminal Remoto [${amigoId.substring(0,6)}]</span>
+                <span class="voice-card-name">${amigoNomeInicial}</span>
             </div>
         `;
         
@@ -614,18 +665,15 @@
         }
     }
 
-    // Cria um stream de segurança em branco caso o usuário ligue sem ligar mic/camera primeiro
     async function verificarGarantiaDeStreamLocal() {
         if (!combinedStream) {
             try {
-                // Tenta capturar o áudio por padrão
                 localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                 combinedStream = localAudioStream;
                 micAtivo = true;
                 document.getElementById('btn-voice-mic').classList.add('active-green');
                 document.getElementById('voice-status-label').textContent = "🎤 Ligado";
             } catch(e) {
-                // Se não houver microfone, cria um oscilador de áudio silencioso via WebAudio para manter o WebRTC de pé
                 const mockCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const mockDst = mockCtx.createMediaStreamDestination();
                 combinedStream = mockDst.stream;
@@ -644,10 +692,8 @@
             tracks.push(localWebcamStream.getVideoTracks()[0]);
         }
         
-        // Constrói o novo MediaStream atualizado
         combinedStream = new MediaStream(tracks);
         
-        // Se houver uma chamada em andamento, substitui os tracks em tempo real (Renegotiation)
         if (currentCall && currentCall.peerConnection) {
             const senders = currentCall.peerConnection.getSenders();
             senders.forEach(sender => {
@@ -751,7 +797,6 @@
         document.getElementById('screen-stream-element').style.display = 'none';
         document.getElementById('voice-avatar-container-self').style.display = 'flex';
         
-        // Remove cards de vídeos remotos
         document.querySelectorAll('.user-video-card').forEach(card => {
             if(card.id !== 'voice-card-self') card.remove();
         });
@@ -774,18 +819,27 @@
 
     function enviarMensagem() {
         const input = document.getElementById('chat-input');
-        if(input.value.trim() !== "") {
+        const msgText = input.value.trim();
+        if(msgText !== "") {
             const user = localStorage.getItem('astryxz_user') || "Operador";
             const time = new Date().toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'});
+            
+            // Exibe localmente no chat com a sua foto base64 real
             document.getElementById('chat-screen').insertAdjacentHTML('beforeend', `
                 <div class="chat-msg">
                     <img src="${base64AvatarData}" class="chat-msg-avatar">
                     <div class="chat-msg-content">
                         <div class="chat-msg-header"><span class="chat-msg-author">${user}</span><span class="chat-msg-time">Hoje às ${time}</span></div>
-                        <div class="chat-msg-text">${input.value.replace(/</g, "&lt;")}</div>
+                        <div class="chat-msg-text">${msgText.replace(/</g, "&lt;")}</div>
                     </div>
                 </div>
             `);
+            
+            // Dispara para o amigo remoto via DataChannel
+            if(dataConnection && dataConnection.open) {
+                dataConnection.send({ type: 'chat', message: msgText });
+            }
+            
             input.value = "";
             const s = document.getElementById('chat-screen'); s.scrollTop = s.scrollHeight;
         }
@@ -817,14 +871,14 @@
     function iniciarRelogio() { setInterval(() => { document.getElementById('sys-clock').textContent = new Date().toLocaleTimeString('pt-PT'); }, 1000); }
     function changeTheme(themeName, btnElement) { currentTheme = themeName; document.body.className = themeName === 'aurora' ? '' : 'theme-' + themeName; document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active')); btnElement.classList.add('active'); setupCanvas(); }
 
-    /* BACKGROUND ANIMATION ENGINE (REESTRUTURADO PARA OS NOVOS TEMAS) */
+    /* BACKGROUND ANIMATION ENGINE */
     window.addEventListener('resize', setupCanvas);
     function setupCanvas() {
         canvas.width = window.innerWidth; 
         canvas.height = window.innerHeight; 
         particles = [];
         
-        let pCount = currentTheme === 'aurora' ? 50 : 80;
+        let pCount = currentTheme === 'aurora' ? 40 : 80;
         for(let i=0; i < pCount; i++) {
             particles.push({ 
                 x: Math.random() * canvas.width, 
@@ -850,8 +904,50 @@
         ctx.fillStyle = `rgba(${bgFills[currentTheme] || bgFills['aurora']}, 0.25)`; 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 1. DESENHAR FUNDOS COMPLEXOS ESTÁTICOS/ILUSTRAÇÕES VIA CÓDIGO ANTES DAS PARTÍCULAS
-        if (currentTheme === 'floresta') {
+        // 1. DESENHAR FUNDOS COMPLEXOS / ILUSTRAÇÕES 
+        if (currentTheme === 'aurora') {
+            auroraTime += 0.004;
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            
+            // Camadas de Ondas Dinâmicas Fluorescentes simulando a Aurora Boreal
+            for(let i = 0; i < 3; i++) {
+                let gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                if(i === 0) {
+                    gradient.addColorStop(0, 'rgba(16, 185, 129, 0)');
+                    gradient.addColorStop(0.5, 'rgba(56, 189, 248, 0.12)');
+                    gradient.addColorStop(1, 'rgba(129, 140, 248, 0)');
+                } else if(i === 1) {
+                    gradient.addColorStop(0, 'rgba(129, 140, 248, 0)');
+                    gradient.addColorStop(0.4, 'rgba(16, 185, 129, 0.15)');
+                    gradient.addColorStop(0.8, 'rgba(56, 189, 248, 0)');
+                } else {
+                    gradient.addColorStop(0, 'rgba(56, 189, 248, 0)');
+                    gradient.addColorStop(0.6, 'rgba(139, 92, 246, 0.1)');
+                    gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
+                }
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.moveTo(0, canvas.height);
+                
+                // Algoritmo matemático para gerar curvas orgânicas
+                for (let x = 0; x <= canvas.width; x += 30) {
+                    let factor1 = (x * 0.002) + auroraTime + (i * 5);
+                    let factor2 = (x * 0.005) - (auroraTime * 0.5);
+                    let y = (canvas.height * 0.3) + 
+                            Math.sin(factor1) * 90 + 
+                            Math.cos(factor2) * 50 + 
+                            Math.sin(x * 0.001 + auroraTime * 2) * 40;
+                    ctx.lineTo(x, y);
+                }
+                ctx.lineTo(canvas.width, canvas.height);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+        else if (currentTheme === 'floresta') {
             ctx.fillStyle = "rgba(4, 26, 8, 0.4)";
             for(let i = 0; i < canvas.width; i += 120) {
                 ctx.beginPath();
@@ -988,6 +1084,14 @@
                 ctx.fillStyle = `rgba(57, 255, 20, ${p.weight * 0.4})`;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            else if (currentTheme === 'aurora') {
+                // No tema aurora, partículas se movem sutilmente para cima simulando poeira estelar
+                p.vy = -0.15 - (p.size * 0.05);
+                ctx.fillStyle = `rgba(56, 189, 248, ${p.weight * 0.6})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * 1.2, 0, Math.PI * 2);
                 ctx.fill();
             }
             else {
