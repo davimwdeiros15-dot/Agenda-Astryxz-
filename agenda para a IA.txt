@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protocolo Astryxz - Zenith Desktop</title>
+    <style>
+        :root {
+            --transition-speed: 0.4s;
+            --bg-main: #020617;
+            --bg-card: rgba(15, 23, 42, 0.65);
+            --text-main: #f8fafc;
+            --text-accent: #818cf8;
+            --border-color: rgba(129, 140, 248, 0.2);
+            --highlight: #38bdf8;
+            --glow: rgba(56, 189, 248, 0.4);
+            --discord-green: #23a55a;
+            --discord-red: #f23f43;
+            --bg-call-bar: #0f172a;
+        }
+
+        body.theme-cyberpunk { --bg-main: #0a0a00; --bg-card: rgba(20, 20, 0, 0.75); --text-main: #ffff00; --text-accent: #b5b500; --border-color: rgba(255, 255, 0, 0.3); --highlight: #ffff00; --glow: rgba(255, 255, 0, 0.5); --bg-call-bar: #1a1a00; }
+        body.theme-sakura { --bg-main: #2a0813; --bg-card: rgba(54, 15, 28, 0.7); --text-main: #ffd3e2; --text-accent: #f472b6; --border-color: rgba(244, 114, 182, 0.3); --highlight: #f43f5e; --glow: rgba(244, 63, 94, 0.4); --bg-call-bar: #3c0c1b; }
+        body.theme-oceano { --bg-main: #000b18; --bg-card: rgba(0, 24, 48, 0.7); --text-main: #e2f1fc; --text-accent: #38bdf8; --border-color: rgba(56, 189, 248, 0.3); --highlight: #0ea5e9; --glow: rgba(14, 165, 233, 0.4); --bg-call-bar: #001c3a; }
+        body.theme-floresta { --bg-main: #020f04; --bg-card: rgba(6, 36, 14, 0.7); --text-main: #e8f7ed; --text-accent: #34d399; --border-color: rgba(52, 211, 153, 0.25); --highlight: #10b981; --glow: rgba(16, 185, 129, 0.4); --bg-call-bar: #041f09; }
+        body.theme-nuke { --bg-main: #080d02; --bg-card: rgba(16, 26, 5, 0.75); --text-main: #39ff14; --text-accent: #76ff03; --border-color: rgba(57, 255, 20, 0.3); --highlight: #39ff14; --glow: rgba(57, 255, 20, 0.5); --bg-call-bar: #101c03; }
+
+        * { box-sizing: border-box; transition: background var(--transition-speed), border-color var(--transition-speed), color var(--transition-speed); }
+
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg-main); color: var(--text-main); margin: 0; padding: 0; min-height: 100vh; overflow: hidden; position: relative; }
+        #fx-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; pointer-events: none; }
+
+        /* INTERFACE INICIAL DE AUTENTICAÇÃO */
+        .welcome-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(10,15,30,0.95) 0%, rgba(2,4,12,1) 100%); backdrop-filter: blur(25px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 1; transition: opacity 0.4s ease; }
+        .welcome-box { background: rgba(15, 23, 42, 0.85); border: 1px solid var(--border-color); padding: 40px; border-radius: 20px; width: 460px; text-align: center; box-shadow: 0 25px 60px rgba(0,0,0,0.8); }
+        .welcome-box h2 { margin: 0 0 6px 0; font-size: 24px; font-weight: 700; letter-spacing: 0.5px; }
+        .welcome-box p { font-size: 13px; color: var(--text-accent); margin-bottom: 25px; }
+        
+        .welcome-box input[type="text"], .account-edit-box input[type="text"] { width: 100%; background: rgba(5, 8, 16, 0.8); border: 1px solid rgba(255,255,255,0.1); padding: 14px 16px; border-radius: 10px; color: #fff; font-size: 14px; outline: none; text-align: center; }
+        .welcome-box input[type="text"]:focus, .account-edit-box input[type="text"]:focus { border-color: var(--highlight); box-shadow: 0 0 12px var(--glow); }
+        .welcome-box input[type="text"] { margin-bottom: 20px; }
+
+        /* FILE UPLOAD COMPACTO */
+        .file-upload-container { display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(5, 8, 16, 0.4); border: 2px dashed var(--border-color); padding: 20px; border-radius: 12px; margin-bottom: 25px; cursor: pointer; position: relative; }
+        .file-upload-container:hover { border-color: var(--highlight); background: rgba(5, 8, 16, 0.6); }
+        .file-upload-container input[type="file"] { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; }
+        .file-upload-preview { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.05); margin-bottom: 10px; border: 2px solid transparent; display: none; }
+        .file-upload-text { font-size: 13px; color: var(--text-accent); font-weight: 500; }
+        .file-upload-text b { color: var(--highlight); }
+
+        .btn-prime { background: linear-gradient(135deg, var(--highlight) 0%, #0284c7 100%); color: #fff; border: none; padding: 14px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; width: 100%; font-size: 14px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); }
+        .btn-prime:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+        /* APLICATIVO CENTRAL */
+        .app-container { max-width: 100vw; height: 100vh; padding: 14px; position: relative; z-index: 1; display: none; flex-direction: column; }
+        .glass-panel { background: var(--bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+
+        /* TOP BAR */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 28px; margin-bottom: 12px; }
+        .sys-header-left { display: flex; align-items: center; gap: 18px; }
+        .user-top-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--border-color); object-fit: cover; background: rgba(255,255,255,0.05); }
+        .sys-title { font-size: 18px; font-weight: 700; color: #fff; margin: 0; }
+        .sys-title b { color: var(--highlight); }
+        
+        .nav-tabs { display: flex; gap: 8px; margin-top: 10px; }
+        .tab-btn { background: rgba(0,0,0,0.25); border: 1px solid transparent; color: var(--text-accent); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .tab-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .tab-btn.active { background: rgba(255,255,255,0.08); border-color: var(--border-color); color: #fff; }
+
+        /* GRID */
+        .main-grid { display: grid; grid-template-columns: 1fr 350px; gap: 14px; flex: 1; overflow: hidden; height: calc(100vh - 125px); }
+        .content-area { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+        .tab-content { display: none; height: 100%; overflow-y: auto; padding: 20px; }
+        .tab-content.active { display: block; }
+        .panel-header { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-accent); margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; letter-spacing: 0.5px; }
+
+        /* MÓDULO CONTA */
+        .account-box { max-width: 500px; margin: 0 auto; background: rgba(0,0,0,0.15); border: 1px solid var(--border-color); border-radius: 12px; padding: 30px; }
+        .account-profile-area { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .account-avatar-large { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid var(--highlight); box-shadow: 0 0 15px var(--glow); background: rgba(255,255,255,0.05); }
+        .account-edit-box { display: flex; flex-direction: column; gap: 16px; margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 20px; }
+        .account-edit-box h3 { margin: 0; font-size: 14px; color: var(--text-accent); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* AGENDA */
+        .agenda-layout { display: flex; flex-direction: column; gap: 20px; }
+        .agenda-inputs { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; background: rgba(0,0,0,0.2); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .agenda-inputs input { background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 8px; color: #fff; font-size: 13px; outline: none; }
+        .agenda-table-wrapper { background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; }
+        .agenda-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        .agenda-table th { background: rgba(255,255,255,0.03); padding: 12px 16px; color: var(--text-accent); border-bottom: 1px solid var(--border-color); }
+        .agenda-table td { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.03); color: var(--text-main); }
+        .agenda-badge { background: rgba(56, 189, 248, 0.15); color: var(--highlight); padding: 4px 8px; border-radius: 6px; font-family: monospace; font-weight: bold; border: 1px solid var(--border-color); }
+        .btn-action-del { background: transparent; border: none; color: var(--discord-red); cursor: pointer; font-weight: bold; }
+
+        /* NOTAS */
+        .note-creator { display: flex; gap: 10px; margin-bottom: 20px; }
+        .note-creator input, .note-creator textarea { background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; color: var(--text-main); outline: none; }
+        .note-creator input { width: 30%; font-weight: bold; }
+        .note-creator textarea { width: 55%; resize: none; height: 45px; }
+        .notes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px; }
+        .note-card { background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-left: 4px solid var(--highlight); border-radius: 10px; padding: 16px; }
+
+        /* CHAMADA DE VÍDEO */
+        .voice-room-container { display: flex; flex-direction: column; height: 100%; background: rgba(0,0,0,0.4); border-radius: 16px; overflow: hidden; position: relative; border: 1px solid var(--border-color); }
+        .voice-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; padding: 20px; align-content: center; overflow-y: auto; position: relative; }
+        .user-video-card { background: var(--bg-card); border: 2px solid var(--border-color); border-radius: 14px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 210px; overflow: hidden; }
+        .user-video-card.speaking { border-color: var(--discord-green); box-shadow: 0 0 16px rgba(35, 165, 90, 0.4); }
+        .user-video-card.maximized-fullscreen { position: absolute !important; top: 12px !important; left: 12px !important; width: calc(100% - 24px) !important; height: calc(100% - 24px) !important; z-index: 100 !important; border-color: var(--highlight) !important; }
+        .video-render-element { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; background: #000; display: none; }
+        .voice-card-center-ui { position: relative; z-index: 2; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .voice-card-avatar { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.05); border: 3px solid rgba(255,255,255,0.05); }
+        .voice-card-name { font-size: 13px; font-weight: 600; color: #fff; background: rgba(3,4,8,0.7); padding: 5px 14px; border-radius: 8px; position: absolute; bottom: 12px; left: 12px; z-index: 3; backdrop-filter: blur(4px); }
+        .voice-card-top-badges { position: absolute; top: 12px; right: 12px; display: flex; gap: 8px; z-index: 4; }
+        .voice-card-mic-status { background: rgba(3,4,8,0.7); padding: 4px 10px; border-radius: 6px; font-size: 11px; color: #fff; backdrop-filter: blur(4px); }
+        .btn-fullscreen-card { background: rgba(3,4,8,0.7); border: none; padding: 4px 10px; border-radius: 6px; color: #fff; cursor: pointer; font-size: 11px; font-weight: bold; backdrop-filter: blur(4px); }
+        .btn-fullscreen-card:hover { background: var(--highlight); color: #000; }
+
+        /* CONTROLES BAR */
+        .voice-controls-bar-wrapper { padding: 0 20px 20px 20px; background: transparent; }
+        .voice-controls-bar { background: var(--bg-call-bar); border: 1px solid var(--border-color); padding: 14px 26px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; }
+        .voice-info-left { font-size: 12px; color: var(--text-accent); font-weight: 700; font-family: monospace; }
+        .control-buttons-center { display: flex; gap: 14px; align-items: center; }
+        .control-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255,255,255,0.03); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .control-btn:hover { background: rgba(255, 255, 255, 0.15); transform: translateY(-2px); }
+        .control-btn.active-green { background: var(--discord-green) !important; box-shadow: 0 0 12px rgba(35, 165, 90, 0.35); }
+        .control-btn.btn-hangup { background: var(--discord-red); border: none; width: 48px; height: 48px; font-size: 18px; margin-left: 10px; }
+        .control-btn.btn-hangup:hover { background: #d8363a; transform: scale(1.05); }
+        
+        /* CHAT SIDEBAR */
+        .sidebar { display: flex; flex-direction: column; gap: 12px; height: 100%; overflow: hidden; }
+        .comm-channel-box { background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; }
+        .comm-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+        .comm-input-group { display: flex; gap: 6px; }
+        .comm-input-group input { flex: 1; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; color: #fff; font-size: 12px; outline: none; }
+
+        .discord-chat-container { flex: 1; display: flex; flex-direction: column; background: #1e1f22; border-radius: 14px; border: 1px solid rgba(0,0,0,0.4); overflow: hidden; }
+        body.theme-cyberpunk .discord-chat-container { background: #151500; }
+        body.theme-oceano .discord-chat-container { background: #000c16; }
+        body.theme-sakura .discord-chat-container { background: #22050e; }
+        body.theme-floresta .discord-chat-container { background: #031406; }
+        body.theme-nuke .discord-chat-container { background: #0b1202; }
+
+        .chat-header-title { background: rgba(0,0,0,0.2); padding: 14px 18px; font-size: 13px; font-weight: 700; color: #fff; border-bottom: 1px solid rgba(0,0,0,0.2); }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+        .chat-msg { display: flex; gap: 12px; align-items: flex-start; }
+        .chat-msg-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.05); }
+        .chat-msg-content { flex: 1; }
+        .chat-msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+        .chat-msg-author { font-size: 14px; font-weight: 600; color: var(--highlight); }
+        .chat-msg-time { font-size: 10px; color: var(--text-accent); opacity: 0.5; }
+        .chat-msg-text { font-size: 14px; color: var(--text-main); line-height: 1.4; white-space: pre-wrap; word-break: break-word; }
+
+        .chat-input-wrapper { padding: 0 16px 16px 16px; background: transparent; }
+        .chat-input-field { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 8px; color: var(--text-main); font-size: 14px; outline: none; }
+        
+        .theme-grid { display: flex; flex-wrap: wrap; gap: 4px; max-width: 340px; justify-content: flex-end; }
+        .theme-btn { background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); color: var(--text-accent); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .theme-btn:hover, .theme-btn.active { border-color: var(--highlight); color: #fff; }
+    </style>
+</head>
+<body>
+
+<canvas id="fx-canvas"></canvas>
+
+<div class="welcome-overlay" id="welcome-screen">
+    <div class="welcome-box">
+        <h2>Autenticação de Diretrizes</h2>
+        <p>Inicialize a sua credencial de segurança para sincronizar com a estação Astryxz.</p>
+        
+        <input type="text" id="input-username" placeholder="Operador / ID de Rede...">
+        
+        <div class="file-upload-container">
+            <img id="upload-preview-screen" class="file-upload-preview" alt="Preview">
+            <div class="file-upload-text" id="upload-text-indicator">Clique ou arraste a <b>Foto de Perfil</b> aqui</div>
+            <input type="file" id="input-avatar-file" accept="image/*" onchange="processarAvatarLocal(this, 'inicial')">
+        </div>
+
+        <button class="btn-prime" onclick="salvarPerfilDoUsuario()">Inicializar Credenciais</button>
+    </div>
+</div>
+
+<div class="app-container" id="main-application">
+    <div id="main-ui" style="display: flex; flex-direction: column; height: 100%;">
+ 
+        <div class="glass-panel top-bar">
+            <div class="sys-header-left">
+                <img src="" id="user-display-avatar" class="user-top-avatar" alt="Avatar">
+                <div>
+                    <h1 class="sys-title">ESTAÇÃO <b>ASTRYXZ</b></h1>
+                    <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-accent);">Operador Autenticado: <span id="op-display" style="color:#fff; font-weight:700;"></span></p>
+                    <div class="nav-tabs">
+                        <button class="tab-btn active" id="btn-tab-notes" onclick="switchTab('notes', this)">📝 Anotações</button>
+                        <button class="tab-btn" id="btn-tab-agenda" onclick="switchTab('agenda', this)">📅 Agenda de Transmissões</button>
+                        <button class="tab-btn" id="btn-tab-voice" onclick="switchTab('voice', this)">🔊 Chamada de Voz</button>
+                        <button class="tab-btn" id="btn-tab-account" onclick="switchTab('account', this)">👤 Conta</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: right;">
+                <div class="live-clock" id="sys-clock">00:00:00</div>
+                <div class="theme-grid" style="margin-top: 6px;">
+                    <button class="theme-btn active" onclick="changeTheme('aurora', this)">🌌 Aurora</button>
+                    <button class="theme-btn" onclick="changeTheme('cyberpunk', this)">⚡ Cyber</button>
+                    <button class="theme-btn" onclick="changeTheme('sakura', this)">🌸 Sakura</button>
+                    <button class="theme-btn" onclick="changeTheme('oceano', this)">🌊 Oceano</button>
+                    <button class="theme-btn" onclick="changeTheme('floresta', this)">🌲 Floresta</button>
+                    <button class="theme-btn" onclick="changeTheme('nuke', this)">☢️ Nuke</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="content-area">
+                
+                <div id="tab-notes" class="tab-content active glass-panel">
+                    <div class="panel-header"><span>Bloco de Notas da Estação</span></div>
+                    <div class="note-creator">
+                        <input type="text" id="note-title" placeholder="Título...">
+                        <textarea id="note-text" placeholder="Conteúdo da anotação..."></textarea>
+                        <button class="btn-prime" style="width: auto; padding: 0 24px;" onclick="criarAnotacao()">Gravar</button>
+                    </div>
+                    <div class="notes-grid" id="notes-container">
+                        <div class="note-card">
+                            <div class="note-title">Sistemas de Animação Avançados</div>
+                            <div class="note-text">Temas animados integrados diretamente no Canvas Engine. Modo Nuke, Dragão Amarelo Cyber, Templo Sakura e Ondas do Oceano gerados em tempo real.</div>
+                            <div class="note-meta">Agora</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-agenda" class="tab-content glass-panel">
+                    <div class="panel-header"><span>📅 Agenda de Transmissões Corporativas</span></div>
+                    <div class="agenda-layout">
+                        <div class="agenda-inputs">
+                            <input type="text" id="ag-title" placeholder="Nome da Transmissão...">
+                            <input type="date" id="ag-date">
+                            <input type="time" id="ag-time">
+                            <input type="text" id="ag-door" placeholder="Porta (Ex: ZENITH-1234)">
+                            <button class="btn-prime" style="width:auto; padding: 0 20px;" onclick="agendarEvento()">Agendar</button>
+                        </div>
+                        <div class="agenda-table-wrapper">
+                            <table class="agenda-table">
+                                <thead>
+                                    <tr>
+                                        <th>Transmissão</th>
+                                        <th>Data</th>
+                                        <th>Horário</th>
+                                        <th>Porta de Conexão</th>
+                                        <th style="width: 50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="agenda-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-voice" class="tab-content">
+                    <div class="voice-room-container">
+                        <div class="voice-grid" id="voice-users-grid">
+                            <div class="user-video-card" id="voice-card-self">
+                                <div class="voice-card-top-badges">
+                                    <span class="voice-card-mic-status" id="voice-status-label">🎤 Desligado</span>
+                                    <button class="btn-fullscreen-card" onclick="toggleAbsoluteFullscreen('voice-card-self')">🔲</button>
+                                </div>
+                                <video id="webcam-stream-element" class="video-render-element" autoplay playsinline muted></video>
+                                <video id="screen-stream-element" class="video-render-element" autoplay playsinline muted></video>
+                                <div class="voice-card-center-ui" id="voice-avatar-container-self">
+                                    <img src="" id="voice-panel-avatar" class="voice-card-avatar" alt="Avatar">
+                                </div>
+                                <span class="voice-card-name" id="voice-user-display">Operador</span>
+                            </div>
+                        </div>
+                        <div class="voice-controls-bar-wrapper">
+                            <div class="voice-controls-bar">
+                                <div class="voice-info-left"><span id="room-id-display">SALA: AGUARDANDO DIRETRIZ</span></div>
+                                <div class="control-buttons-center">
+                                    <button class="control-btn" id="btn-voice-mic" onclick="toggleMicHardware()">🎤</button>
+                                    <button class="control-btn" id="btn-voice-camera" onclick="toggleCameraHardware()">📷</button>
+                                    <button class="control-btn" id="btn-voice-screen" onclick="toggleScreenShareHardware()">📺</button>
+                                    <button class="control-btn btn-hangup" onclick="sairDaCall()">🛑</button>
+                                </div>
+                                <div style="width: 140px; text-align: right;"><span style="font-size: 11px; color:var(--highlight); font-weight: bold;">● CONEXÃO SECURE</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-account" class="tab-content glass-panel">
+                    <div class="panel-header"><span>👤 Perfil da Conta</span></div>
+                    <div class="account-box">
+                        <div class="account-profile-area">
+                            <img src="" id="account-avatar-display" class="account-avatar-large" alt="Avatar">
+                            <h2 id="account-name-display" style="margin:0; font-size:20px; color:#fff;"></h2>
+                            <span style="font-size:12px; background:rgba(255,255,255,0.08); padding:4px 10px; border-radius:20px; color:var(--text-accent);">ID OPERACIONAL ATIVO</span>
+                        </div>
+                        
+                        <div class="account-edit-box">
+                            <h3>Modificar Identidade</h3>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="edit-account-name" placeholder="Inserir novo nome..." style="text-align: left;">
+                                <button class="btn-prime" style="width:auto; white-space:nowrap; padding:0 16px;" onclick="atualizarNomeInstantaneo()">Mudar Nome</button>
+                            </div>
+                            <div class="file-upload-container" style="margin-bottom:10px; background: rgba(5, 8, 16, 0.2);">
+                                <div class="file-upload-text" id="upload-account-text">Clique aqui para <b>Alterar Foto de Perfil</b></div>
+                                <input type="file" id="edit-account-avatar" accept="image/*" onchange="processarAvatarLocal(this, 'painel-conta')">
+                            </div>
+                        </div>
+
+                        <button class="btn-prime" style="background:#f23f43; box-shadow:none; margin-top: 20px;" onclick="redefinirConta()">Desconectar Totalmente</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="sidebar">
+                <div class="glass-panel comm-channel-box">
+                    <div class="panel-header" style="font-size: 11px; margin-bottom: 8px;"><span>🚪 Geração de Portas</span></div>
+                    <div class="comm-actions">
+                        <button class="btn-prime" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 12px rgba(16,185,129,0.3);" onclick="gerarNovaPortaDinamica()">✨ Gerar Nova Porta</button>
+                        <div style="font-size:11px; opacity:0.7; margin-top:4px;">Código de acesso ativo:</div>
+                        <div id="generated-code-box" style="font-family:monospace; font-size:15px; font-weight:bold; color:var(--highlight); background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; text-align:center; margin-bottom:8px; border:1px dashed var(--border-color)">PORTA INATIVA</div>
+                        <div class="comm-input-group">
+                            <input type="text" id="input-join-code" placeholder="Porta de transmissão...">
+                            <button class="btn-prime" style="width:auto; padding:0 12px; font-size:12px;" onclick="conectarViaCodigoPorta()">Aceder</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="discord-chat-container">
+                    <div class="chat-header-title"># terminal-geral</div>
+                    <div class="chat-messages" id="chat-screen">
+                        <div class="chat-msg">
+                            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%2338bdf8'/></svg>" class="chat-msg-avatar">
+                            <div class="chat-msg-content">
+                                <div class="chat-msg-header"><span class="chat-msg-author">CORE-SYSTEM</span><span class="chat-msg-time">Agora</span></div>
+                                <div class="chat-msg-text">Estação recarregada. Selecione os botões de tema no topo superior direito para ver as animações dinâmicas rodando no fundo!</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="chat-input" class="chat-input-field" placeholder="Enviar mensagem..." onkeydown="if(event.key === 'Enter') enviarMensagem()">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentTheme = 'aurora';
+    let currentRoomCode = '';
+    let agendadosList = [];
+    let base64AvatarData = ''; 
+    
+    let localAudioStream = null, localWebcamStream = null, localScreenStream = null;
+    let audioContext = null, analyser = null, microphoneSource = null, javascriptNode = null;
+    let micAtivo = false, cameraAtiva = false, telaAtiva = false;
+
+    // Canvas Animação Setup e Props adicionais para os novos temas
+    const canvas = document.getElementById('fx-canvas'); 
+    const ctx = canvas.getContext('2d'); 
+    let particles = [];
+    let waveOffset = 0; // Para as ondas do Oceano
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const salvoUser = localStorage.getItem('astryxz_user');
+        const salvoAvatar = localStorage.getItem('astryxz_avatar_b64');
+        
+        if (salvoUser) {
+            document.getElementById('input-username').value = salvoUser;
+            document.getElementById('edit-account-name').value = salvoUser;
+            if (salvoAvatar) {
+                base64AvatarData = salvoAvatar;
+                const prev = document.getElementById('upload-preview-screen');
+                prev.src = salvoAvatar;
+                prev.style.display = 'block';
+                document.getElementById('upload-text-indicator').innerHTML = "Foto de perfil <b>carregada</b>";
+            }
+            salvarPerfilDoUsuario();
+        }
+    });
+
+    function processarAvatarLocal(input, origem) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                base64AvatarData = e.target.result;
+                if(origem === 'inicial') {
+                    const prev = document.getElementById('upload-preview-screen');
+                    prev.src = base64AvatarData;
+                    prev.style.display = 'block';
+                    document.getElementById('upload-text-indicator').innerHTML = "Foto carregada: <b>" + input.files[0].name + "</b>";
+                } else if(origem === 'painel-conta') {
+                    localStorage.setItem('astryxz_avatar_b64', base64AvatarData);
+                    atualizarInterfacesDeUsuario(localStorage.getItem('astryxz_user') || "Operador");
+                    document.getElementById('upload-account-text').innerHTML = "Foto atualizada com <b>sucesso!</b>";
+                    injetarMensagemSistema("Sua foto de perfil foi atualizada.");
+                }
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function salvarPerfilDoUsuario() {
+        const username = document.getElementById('input-username').value.trim() || "Diretor de Rede";
+        if(!base64AvatarData) {
+            base64AvatarData = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='40' r='20' fill='%2364748b'/><path d='M20,80 C20,60 40,60 50,60 C60,60 80,60 80,80' fill='%2364748b'/></svg>";
+        }
+
+        localStorage.setItem('astryxz_user', username);
+        localStorage.setItem('astryxz_avatar_b64', base64AvatarData);
+        atualizarInterfacesDeUsuario(username);
+        
+        document.getElementById('welcome-screen').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('welcome-screen').style.display = 'none';
+            document.getElementById('main-application').style.display = 'flex';
+        }, 300);
+
+        if(!window.sysIniciado) {
+            iniciarRelogio();
+            gerarNovaPortaDinamica();
+            setupCanvas();
+            renderizarAgenda();
+            window.sysIniciado = true;
+        }
+    }
+
+    function atualizarNomeInstantaneo() {
+        const novoNome = document.getElementById('edit-account-name').value.trim();
+        if(!novoNome) return;
+        localStorage.setItem('astryxz_user', novoNome);
+        atualizarInterfacesDeUsuario(novoNome);
+        injetarMensagemSistema(`Nome operacional alterado para: "${novoNome}".`);
+    }
+
+    function atualizarInterfacesDeUsuario(nome) {
+        document.getElementById('op-display').textContent = nome;
+        document.getElementById('voice-user-display').textContent = nome;
+        document.getElementById('user-display-avatar').src = base64AvatarData;
+        document.getElementById('voice-panel-avatar').src = base64AvatarData;
+        document.getElementById('account-name-display').textContent = nome;
+        document.getElementById('account-avatar-display').src = base64AvatarData;
+        document.getElementById('edit-account-name').value = nome;
+    }
+
+    function redefinirConta() {
+        localStorage.clear();
+        location.reload();
+    }
+
+    /* AGENDA */
+    function agendarEvento() {
+        const title = document.getElementById('ag-title').value.trim();
+        const date = document.getElementById('ag-date').value;
+        const time = document.getElementById('ag-time').value;
+        const door = document.getElementById('ag-door').value.trim().toUpperCase() || "ZENITH-CALL";
+        if(!title || !date || !time) return;
+
+        const novoEvento = { id: Date.now(), title, date, time, door };
+        agendadosList.push(novoEvento);
+        document.getElementById('ag-title').value = "";
+        document.getElementById('ag-date').value = "";
+        document.getElementById('ag-time').value = "";
+        document.getElementById('ag-door').value = "";
+        renderizarAgenda();
+        injetarMensagemSistema(`Nova transmissão agendada: "${title}".`);
+    }
+
+    function deletarEvento(id) {
+        agendadosList = agendadosList.filter(ev => ev.id !== id);
+        renderizarAgenda();
+    }
+
+    function renderizarAgenda() {
+        const tbody = document.getElementById('agenda-table-body');
+        if(agendadosList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; opacity:0.4; padding:20px;">Nenhuma transmissão agendada.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = "";
+        agendadosList.forEach(ev => {
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr>
+                    <td style="font-weight:600; color:#fff;">${ev.title}</td>
+                    <td>${ev.date.split('-').reverse().join('/')}</td>
+                    <td style="color:var(--highlight); font-weight:bold;">${ev.time}</td>
+                    <td><span class="agenda-badge">${ev.door}</span></td>
+                    <td><button class="btn-action-del" onclick="deletarEvento(${ev.id})">✕</button></td>
+                </tr>
+            `);
+        });
+    }
+
+    /* PORTAS DE COMUNICAÇÃO */
+    function gerarNovaPortaDinamica() {
+        const num = Math.floor(1000 + Math.random() * 9000);
+        currentRoomCode = `ZENITH-${num}`;
+        document.getElementById('generated-code-box').textContent = currentRoomCode;
+        document.getElementById('room-id-display').textContent = `SALA: ${currentRoomCode}`;
+        if (window.sysIniciado) injetarMensagemSistema(`Nova porta de comunicação gerada: [${currentRoomCode}].`);
+    }
+
+    function conectarViaCodigoPorta() {
+        const codeInput = document.getElementById('input-join-code').value.trim().toUpperCase();
+        if(!codeInput) return;
+        document.getElementById('room-id-display').textContent = `SALA: ${codeInput}`;
+        switchTab('voice', document.getElementById('btn-tab-voice'));
+        const grid = document.getElementById('voice-users-grid');
+        const amigoId = "user-" + Math.floor(Math.random() * 100);
+        
+        if(!document.getElementById(amigoId)) {
+            grid.insertAdjacentHTML('beforeend', `
+                <div class="user-video-card" id="${amigoId}">
+                    <div class="voice-card-top-badges">
+                        <span class="voice-card-mic-status">🎤 Ligado</span>
+                        <button class="btn-fullscreen-card" onclick="toggleAbsoluteFullscreen('${amigoId}')">🔲</button>
+                    </div>
+                    <div class="voice-card-center-ui">
+                        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%232e1065'/></svg>" class="voice-card-avatar">
+                    </div>
+                    <span class="voice-card-name">Operador_Externo [${codeInput}]</span>
+                </div>
+            `);
+            injetarMensagemSistema(`Terminal remoto pareado na porta [${codeInput}].`);
+        }
+        document.getElementById('input-join-code').value = "";
+    }
+
+    function toggleAbsoluteFullscreen(cardId) {
+        const card = document.getElementById(cardId);
+        if (card.classList.contains('maximized-fullscreen')) {
+            card.classList.remove('maximized-fullscreen');
+        } else {
+            document.querySelectorAll('.user-video-card').forEach(c => c.classList.remove('maximized-fullscreen'));
+            card.classList.add('maximized-fullscreen');
+        }
+    }
+
+    /* HARDWARE MULTIMÍDIA */
+    async function toggleMicHardware() {
+        const btn = document.getElementById('btn-voice-mic'), label = document.getElementById('voice-status-label'), selfCard = document.getElementById('voice-card-self');
+        if (!micAtivo) {
+            try {
+                localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                micAtivo = true; btn.classList.add('active-green'); label.textContent = "🎤 Ligado";
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser(); microphoneSource = audioContext.createMediaStreamSource(localAudioStream);
+                javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+                analyser.smoothingTimeConstant = 0.8; analyser.fftSize = 1024;
+                microphoneSource.connect(analyser); analyser.connect(javascriptNode); javascriptNode.connect(audioContext.destination);
+                javascriptNode.onaudioprocess = () => {
+                    const array = new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(array);
+                    let values = 0; for (let i = 0; i < array.length; i++) { values += array[i]; }
+                    if ((values / array.length) > 12) { selfCard.classList.add('speaking'); } else { selfCard.classList.remove('speaking'); }
+                };
+            } catch (err) { alert("Microfone indisponível."); }
+        } else {
+            if(localAudioStream) localAudioStream.getTracks().forEach(track => track.stop());
+            if(javascriptNode) javascriptNode.disconnect();
+            micAtivo = false; btn.classList.remove('active-green'); label.textContent = "🎤 Desligado"; selfCard.classList.remove('speaking');
+        }
+    }
+
+    async function toggleCameraHardware() {
+        const btn = document.getElementById('btn-voice-camera'), videoEl = document.getElementById('webcam-stream-element'), avatarBox = document.getElementById('voice-avatar-container-self');
+        if (!cameraAtiva) {
+            try {
+                localWebcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+                videoEl.srcObject = localWebcamStream; videoEl.style.display = 'block'; avatarBox.style.display = 'none';
+                cameraAtiva = true; btn.classList.add('active-green');
+            } catch (err) { alert("Câmera não encontrada."); }
+        } else {
+            if (localWebcamStream) localWebcamStream.getTracks().forEach(track => track.stop());
+            videoEl.style.display = 'none'; if(!telaAtiva) avatarBox.style.display = 'flex';
+            cameraAtiva = false; btn.classList.remove('active-green');
+        }
+    }
+
+    async function toggleScreenShareHardware() {
+        const btn = document.getElementById('btn-voice-screen'), videoEl = document.getElementById('screen-stream-element'), avatarBox = document.getElementById('voice-avatar-container-self');
+        if (!telaAtiva) {
+            try {
+                localScreenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                videoEl.srcObject = localScreenStream; videoEl.style.display = 'block'; avatarBox.style.display = 'none';
+                telaAtiva = true; btn.classList.add('active-green');
+                localScreenStream.getVideoTracks()[0].onended = () => { apagarApresentacaoTela(); };
+            } catch (err) { console.error(err); }
+        } else { apagarApresentacaoTela(); }
+    }
+
+    function apagarApresentacaoTela() {
+        const btn = document.getElementById('btn-voice-screen'), videoEl = document.getElementById('screen-stream-element'), avatarBox = document.getElementById('voice-avatar-container-self');
+        if (localScreenStream) localScreenStream.getTracks().forEach(track => track.stop());
+        videoEl.style.display = 'none'; if (!cameraAtiva) avatarBox.style.display = 'flex';
+        telaAtiva = false; btn.classList.remove('active-green');
+    }
+
+    function sairDaCall() {
+        if(localAudioStream) localAudioStream.getTracks().forEach(track => track.stop());
+        if(localWebcamStream) localWebcamStream.getTracks().forEach(track => track.stop());
+        if(localScreenStream) localScreenStream.getTracks().forEach(track => track.stop());
+        document.getElementById('webcam-stream-element').style.display = 'none';
+        document.getElementById('screen-stream-element').style.display = 'none';
+        document.getElementById('voice-avatar-container-self').style.display = 'flex';
+        micAtivo = cameraAtiva = telaAtiva = false;
+        document.getElementById('btn-voice-mic').classList.remove('active-green');
+        document.getElementById('btn-voice-camera').classList.remove('active-green');
+        document.getElementById('btn-voice-screen').classList.remove('active-green');
+        switchTab('notes', document.getElementById('btn-tab-notes'));
+    }
+
+    function switchTab(tabId, btnElement) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+        if(btnElement) btnElement.classList.add('active');
+    }
+
+    function enviarMensagem() {
+        const input = document.getElementById('chat-input');
+        if(input.value.trim() !== "") {
+            const user = localStorage.getItem('astryxz_user') || "Operador";
+            const time = new Date().toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'});
+            document.getElementById('chat-screen').insertAdjacentHTML('beforeend', `
+                <div class="chat-msg">
+                    <img src="${base64AvatarData}" class="chat-msg-avatar">
+                    <div class="chat-msg-content">
+                        <div class="chat-msg-header"><span class="chat-msg-author">${user}</span><span class="chat-msg-time">Hoje às ${time}</span></div>
+                        <div class="chat-msg-text">${input.value.replace(/</g, "&lt;")}</div>
+                    </div>
+                </div>
+            `);
+            input.value = "";
+            const s = document.getElementById('chat-screen'); s.scrollTop = s.scrollHeight;
+        }
+    }
+
+    function injetarMensagemSistema(texto) {
+        const time = new Date().toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'});
+        document.getElementById('chat-screen').insertAdjacentHTML('beforeend', `
+            <div class="chat-msg">
+                <div class="chat-msg-content">
+                    <div class="chat-msg-header"><span class="chat-msg-author" style="color:var(--highlight)">SISTEMA</span><span class="chat-msg-time">${time}</span></div>
+                    <div class="chat-msg-text">${texto}</div>
+                </div>
+            </div>
+        `);
+        const s = document.getElementById('chat-screen'); s.scrollTop = s.scrollHeight;
+    }
+
+    function criarAnotacao() {
+        const titleInput = document.getElementById('note-title'), textInput = document.getElementById('note-text');
+        if (titleInput.value.trim() !== "" || textInput.value.trim() !== "") {
+            document.getElementById('notes-container').insertAdjacentHTML('afterbegin', `
+                <div class="note-card"><div class="note-title">${titleInput.value || "Sem Título"}</div><div class="note-text">${textInput.value}</div><div class="note-meta">Agora</div></div>
+            `);
+            titleInput.value = ""; textInput.value = "";
+        }
+    }
+
+    function iniciarRelogio() { setInterval(() => { document.getElementById('sys-clock').textContent = new Date().toLocaleTimeString('pt-PT'); }, 1000); }
+    function changeTheme(themeName, btnElement) { currentTheme = themeName; document.body.className = themeName === 'aurora' ? '' : 'theme-' + themeName; document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active')); btnElement.classList.add('active'); setupCanvas(); }
+
+    /* BACKGROUND ANIMATION ENGINE (REESTRUTURADO PARA OS NOVOS TEMAS) */
+    window.addEventListener('resize', setupCanvas);
+    function setupCanvas() {
+        canvas.width = window.innerWidth; 
+        canvas.height = window.innerHeight; 
+        particles = [];
+        
+        let pCount = currentTheme === 'aurora' ? 50 : 80;
+        for(let i=0; i < pCount; i++) {
+            particles.push({ 
+                x: Math.random() * canvas.width, 
+                y: Math.random() * canvas.height, 
+                size: Math.random() * 4 + 1, 
+                vx: (Math.random() - 0.5) * 0.8, 
+                vy: currentTheme === 'sakura' || currentTheme === 'floresta' ? (Math.random() * 0.6 + 0.4) : (Math.random() - 0.5) * 0.6,
+                angle: Math.random() * Math.PI * 2,
+                weight: Math.random() * 0.5 + 0.2
+            });
+        }
+    }
+
+    function draw() {
+        const bgFills = { 
+            'aurora': '2, 6, 23', 
+            'cyberpunk': '10, 10, 0', 
+            'sakura': '42, 8, 19', 
+            'oceano': '0, 11, 24', 
+            'floresta': '2, 15, 4',
+            'nuke': '8, 13, 2'
+        };
+        ctx.fillStyle = `rgba(${bgFills[currentTheme] || bgFills['aurora']}, 0.25)`; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 1. DESENHAR FUNDOS COMPLEXOS ESTÁTICOS/ILUSTRAÇÕES VIA CÓDIGO ANTES DAS PARTÍCULAS
+        if (currentTheme === 'floresta') {
+            // Desenhar silhuetas de Árvores ao fundo do Campo
+            ctx.fillStyle = "rgba(4, 26, 8, 0.4)";
+            for(let i = 0; i < canvas.width; i += 120) {
+                ctx.beginPath();
+                ctx.moveTo(i, canvas.height);
+                ctx.lineTo(i + 40, canvas.height - 180);
+                ctx.lineTo(i + 80, canvas.height);
+                ctx.fill();
+                // Troncos
+                ctx.fillStyle = "rgba(2, 12, 4, 0.5)";
+                ctx.fillRect(i + 36, canvas.height - 60, 8, 60);
+                ctx.fillStyle = "rgba(4, 26, 8, 0.4)";
+            }
+        } 
+        else if (currentTheme === 'sakura') {
+            // Desenhar Silhueta de um Templo Chinês/Japonês ao Fundo
+            ctx.fillStyle = "rgba(24, 4, 10, 0.5)";
+            let cx = canvas.width / 2 - 150;
+            let cy = canvas.height - 250;
+            // Base do templo
+            ctx.fillRect(cx + 30, cy + 120, 240, 130);
+            // Telhado inferior
+            ctx.beginPath();
+            ctx.moveTo(cx, cy + 120);
+            ctx.quadraticCurveTo(cx + 150, cy + 100, cx + 300, cy + 120);
+            ctx.lineTo(cx + 260, cy + 80);
+            ctx.lineTo(cx + 40, cy + 80);
+            ctx.closePath(); ctx.fill();
+            // Andar de cima
+            ctx.fillRect(cx + 60, cy + 30, 180, 50);
+            // Telhado Superior do Templo
+            ctx.beginPath();
+            ctx.moveTo(cx + 20, cy + 30);
+            ctx.quadraticCurveTo(cx + 150, cy, cx + 280, cy + 30);
+            ctx.lineTo(cx + 220, cy - 20);
+            ctx.lineTo(cx + 80, cy - 20);
+            ctx.closePath(); ctx.fill();
+        } 
+        else if (currentTheme === 'cyberpunk') {
+            // Desenhar Silhueta Abstrata de um Dragão Oriental Amarelo no Fundo de forma Vetorial
+            ctx.strokeStyle = "rgba(255, 255, 0, 0.05)";
+            ctx.lineWidth = 12;
+            ctx.beginPath();
+            // Corpo serpentinado cobrindo a tela
+            ctx.moveTo(canvas.width * 0.1, canvas.height * 0.8);
+            ctx.bezierCurveTo(canvas.width * 0.3, canvas.height * 0.2, canvas.width * 0.5, canvas.height * 0.9, canvas.width * 0.7, canvas.height * 0.3);
+            ctx.quadraticCurveTo(canvas.width * 0.85, canvas.height * 0.1, canvas.width * 0.9, canvas.height * 0.4);
+            ctx.stroke();
+            
+            // Cabeça do Dragão e Detalhes
+            ctx.fillStyle = "rgba(255, 255, 0, 0.04)";
+            ctx.beginPath();
+            ctx.arc(canvas.width * 0.9, canvas.height * 0.4, 50, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Raios Amarelos Aleatórios (Efeito tempestade elétrica Cyber)
+            if (Math.random() < 0.15) {
+                ctx.strokeStyle = "rgba(255, 255, 0, 0.4)";
+                ctx.lineWidth = Math.random() * 3 + 1;
+                ctx.beginPath();
+                let rx = Math.random() * canvas.width;
+                ctx.moveTo(rx, 0);
+                ctx.lineTo(rx + (Math.random() - 0.5) * 100, canvas.height * 0.3);
+                ctx.lineTo(rx + (Math.random() - 0.5) * 200, canvas.height * 0.7);
+                ctx.lineTo(rx + (Math.random() - 0.5) * 50, canvas.height);
+                ctx.stroke();
+            }
+        }
+        else if (currentTheme === 'oceano') {
+            // Ondas Orgânicas Fluidas de fundo
+            waveOffset += 0.015;
+            ctx.fillStyle = "rgba(0, 32, 64, 0.3)";
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height);
+            for (let x = 0; x <= canvas.width; x += 20) {
+                let y = canvas.height - 120 + Math.sin(x * 0.004 + waveOffset) * 25 + Math.cos(x * 0.008 + waveOffset) * 10;
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.closePath(); ctx.fill();
+        }
+        else if (currentTheme === 'nuke') {
+            // Desenhar Logo Central de Radiação Tóxica Verde
+            let midX = canvas.width / 2;
+            let midY = canvas.height / 2;
+            ctx.strokeStyle = "rgba(57, 255, 20, 0.04)";
+            ctx.fillStyle = "rgba(57, 255, 20, 0.03)";
+            
+            // Círculo externo
+            ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.arc(midX, midY, 140, 0, Math.PI*2); ctx.stroke();
+            
+            // Abas de hélice da radiação
+            for(let a=0; a<3; a++) {
+                let startAng = (a * 120 * Math.PI / 180) + (Date.now()/5000);
+                let endAng = startAng + (60 * Math.PI / 180);
+                ctx.beginPath();
+                ctx.moveTo(midX, midY);
+                ctx.arc(midX, midY, 120, startAng, endAng);
+                ctx.closePath(); ctx.fill();
+            }
+            // Centro protetor
+            ctx.fillStyle = "rgba(8, 13, 2, 1)";
+            ctx.beginPath(); ctx.arc(midX, midY, 35, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "rgba(57, 255, 20, 0.04)";
+            ctx.beginPath(); ctx.arc(midX, midY, 25, 0, Math.PI*2); ctx.fill();
+
+            // Bombas de Esgoto Líquido / Tonéis nas laterais inferiores
+            ctx.fillStyle = "rgba(25, 45, 10, 0.5)";
+            ctx.fillRect(40, canvas.height - 140, 70, 140); // Bomba Esquerda
+            ctx.fillRect(canvas.width - 110, canvas.height - 140, 70, 140); // Bomba Direita
+            ctx.fillStyle = "rgba(57, 255, 20, 0.3)";
+            ctx.fillRect(45, canvas.height - 130, 60, 10); // Detalhe verde vazando líquido
+            ctx.fillRect(canvas.width - 105, canvas.height - 130, 60, 10);
+        }
+
+        // 2. RENDERIZAR E MOVER AS PARTÍCULAS DE ACORDO COM O TEMA ESCOLHIDO
+        particles.forEach(p => {
+            p.x += p.vx; 
+            p.y += p.vy;
+
+            // Comportamentos e estilizações customizadas
+            if (currentTheme === 'sakura') {
+                // Pétalas de Sakura caem de lado
+                p.vx = 0.5 + Math.sin(p.angle) * 0.2;
+                ctx.fillStyle = `rgba(244, 63, 94, ${p.weight})`;
+                ctx.beginPath();
+                ctx.ellipse(p.x, p.y, p.size * 1.5, p.size, Math.PI / 4, 0, Math.PI * 2);
+                ctx.fill();
+            } 
+            else if (currentTheme === 'floresta') {
+                // Folhas verdes caindo no campo
+                p.vx = Math.sin(p.angle) * 0.3;
+                ctx.fillStyle = `rgba(16, 185, 129, ${p.weight + 0.2})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            } 
+            else if (currentTheme === 'oceano') {
+                // Bolhas subindo de baixo para cima
+                p.vy = -Math.abs(p.vy) - 0.2;
+                ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size + 1, 0, Math.PI * 2);
+                ctx.stroke();
+            } 
+            else if (currentTheme === 'cyberpunk') {
+                // Poeira binária amarela brilhante
+                ctx.fillStyle = "rgba(255, 255, 0, 0.7)";
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            }
+            else if (currentTheme === 'nuke') {
+                // Fumaça/Gás radioativo verde subindo das bombas
+                p.vy = -Math.abs(p.vy) - 0.4;
+                p.vx += (Math.random() - 0.5) * 0.3;
+                ctx.fillStyle = `rgba(57, 255, 20, ${p.weight * 0.4})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            else {
+                // Aurora / Padrão Estelar comum
+                ctx.beginPath(); 
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); 
+                ctx.fillStyle = 'rgba(255,255,255,0.15)'; 
+                ctx.fill();
+            }
+
+            // Loop das partículas pelas bordas
+            if(p.x < 0) p.x = canvas.width; 
+            if(p.x > canvas.width) p.x = 0;
+            if(p.y < 0) p.y = canvas.height; 
+            if(p.y > canvas.height) p.y = 0;
+            p.angle += 0.01;
+        });
+
+        requestAnimationFrame(draw);
+    }
+    setupCanvas(); 
+    draw();
+</script>
+</body>
+</html>
+
+124
