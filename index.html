@@ -319,7 +319,8 @@
                 <div class="glass-panel comm-channel-box">
                     <div class="panel-header" style="font-size: 11px; margin-bottom: 8px;"><span>🚪 Geração de Portas</span></div>
                     <div class="comm-actions">
-                        <button class="btn-prime" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 12px rgba(16,185,129,0.3);" onclick="gerarNovaPortaDinamica()">✨ Gerar Nova Porta</button> <div style="font-size:11px; opacity:0.7; margin-top:4px;">Código de acesso ativo:</div>
+                        <button class="btn-prime" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 12px rgba(16,185,129,0.3);" onclick="gerarNovaPortaDinamica()">✨ Gerar Nova Porta</button>
+                        <div style="font-size:11px; opacity:0.7; margin-top:4px;">Código de acesso ativo:</div>
                         <div id="generated-code-box" style="font-family:monospace; font-size:15px; font-weight:bold; color:var(--highlight); background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; text-align:center; margin-bottom:8px; border:1px dashed var(--border-color)">PORTA INATIVA</div>
                         <div class="comm-input-group">
                             <input type="text" id="input-join-code" placeholder="Porta de transmissão...">
@@ -407,11 +408,7 @@
                     
                     // Se estiver em uma conexão de dados ativa, envia o avatar atualizado
                     if(dataConnection && dataConnection.open) {
-                        dataConnection.send({
-                            type: 'identity',
-                            name: localStorage.getItem('astryxz_user'),
-                            avatar: base64AvatarData
-                        });
+                        dataConnection.send({ type: 'identity', name: localStorage.getItem('astryxz_user'), avatar: base64AvatarData });
                     }
                 }
             };
@@ -424,10 +421,11 @@
         if(!base64AvatarData) {
             base64AvatarData = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='40' r='20' fill='%2364748b'/><path d='M20,80 C20,60 40,60 50,60 C60,60 80,60 80,80' fill='%2364748b'/></svg>";
         }
+
         localStorage.setItem('astryxz_user', username);
         localStorage.setItem('astryxz_avatar_b64', base64AvatarData);
         atualizarInterfacesDeUsuario(username);
-
+        
         document.getElementById('welcome-screen').style.opacity = '0';
         setTimeout(() => {
             document.getElementById('welcome-screen').style.display = 'none';
@@ -451,11 +449,7 @@
         injetarMensagemSistema(`Nome operacional alterado para: "${novoNome}".`);
         
         if(dataConnection && dataConnection.open) {
-            dataConnection.send({
-                type: 'identity',
-                name: novoNome,
-                avatar: base64AvatarData
-            });
+            dataConnection.send({ type: 'identity', name: novoNome, avatar: base64AvatarData });
         }
     }
 
@@ -484,12 +478,10 @@
 
         const novoEvento = { id: Date.now(), title, date, time, door };
         agendadosList.push(novoEvento);
-        
         document.getElementById('ag-title').value = "";
         document.getElementById('ag-date').value = "";
         document.getElementById('ag-time').value = "";
         document.getElementById('ag-door').value = "";
-        
         renderizarAgenda();
         injetarMensagemSistema(`Nova transmissão agendada: "${title}".`);
     }
@@ -501,593 +493,625 @@
 
     function renderizarAgenda() {
         const tbody = document.getElementById('agenda-table-body');
-        tbody.innerHTML = "";
         if(agendadosList.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; opacity:0.5; padding:20px;">Nenhuma transmissão agendada no momento.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; opacity:0.4; padding:20px;">Nenhuma transmissão agendada.</td></tr>`;
             return;
         }
+        tbody.innerHTML = "";
         agendadosList.forEach(ev => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="font-weight:700;">${ev.title}</td>
-                <td>${ev.date}</td>
-                <td>${ev.time}</td>
-                <td><span class="agenda-badge">${ev.door}</span></td>
-                <td><button class="btn-action-del" onclick="deletarEvento(${ev.id})">❌</button></td>
-            `;
-            tbody.appendChild(tr);
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr>
+                    <td style="font-weight:600; color:#fff;">${ev.title}</td>
+                    <td>${ev.date.split('-').reverse().join('/')}</td>
+                    <td style="color:var(--highlight); font-weight:bold;">${ev.time}</td>
+                    <td><span class="agenda-badge">${ev.door}</span></td>
+                    <td><button class="btn-action-del" onclick="deletarEvento(${ev.id})">✕</button></td>
+                </tr>
+            `);
         });
     }
 
-    /* SISTEMA MULTIMÉDIA COM COMBINED STREAM FIXED */
-    function buildCombinedStream() {
-        const tracks = [];
-        
-        // Prioriza a Partilha de Ecrã, senão usa a Webcam
-        if (telaAtiva && localScreenStream) {
-            const screenTrack = localScreenStream.getVideoTracks()[0];
-            if (screenTrack) tracks.push(screenTrack);
-        } else if (cameraAtiva && localWebcamStream) {
-            const webcamTrack = localWebcamStream.getVideoTracks()[0];
-            if (webcamTrack) tracks.push(webcamTrack);
-        }
-
-        if (micAtivo && localAudioStream) {
-            const audioTrack = localAudioStream.getAudioTracks()[0];
-            if (audioTrack) tracks.push(audioTrack);
-        }
-
-        combinedStream = new MediaStream(tracks);
-
-        // ATUALIZAÇÃO EM TEMPO REAL NA CHAMADA ATIVA (Track Replacement)
-        if (currentCall && currentCall.peerConnection) {
-            const senders = currentCall.peerConnection.getSenders();
-            
-            // Atualiza a faixa de Vídeo
-            const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-            const newVideoTrack = combinedStream.getVideoTracks()[0] || null;
-            if (videoSender && videoSender.track !== newVideoTrack) {
-                videoSender.replaceTrack(newVideoTrack).catch(err => console.error("Erro ao substituir Track de Vídeo:", err));
-            } else if (!videoSender && newVideoTrack) {
-                // Caso não existisse vídeo antes, força uma re-chamada ou adição (o replaceTrack lida com o sender existente)
-                currentCall.peerConnection.addTrack(newVideoTrack, combinedStream);
-            }
-
-            // Atualiza a faixa de Áudio
-            const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
-            const newAudioTrack = combinedStream.getAudioTracks()[0] || null;
-            if (audioSender && audioSender.track !== newAudioTrack) {
-                audioSender.replaceTrack(newAudioTrack).catch(err => console.error("Erro ao substituir Track de Áudio:", err));
-            }
-        }
-    }
-
-    async function toggleMicHardware() {
-        const btn = document.getElementById('btn-voice-mic');
-        if(!micAtivo) {
-            try {
-                localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                micAtivo = true;
-                btn.classList.add('active-green');
-                document.getElementById('voice-status-label').textContent = "🎤 Transmitindo";
-                setupAudioAnalyser(localAudioStream);
-            } catch(e) {
-                alert("Falha ao aceder ao microfone: " + e.message);
-                return;
-            }
-        } else {
-            if(localAudioStream) {
-                localAudioStream.getTracks().forEach(t => t.stop());
-                localAudioStream = null;
-            }
-            micAtivo = false;
-            btn.classList.remove('active-green');
-            document.getElementById('voice-status-label').textContent = "🎤 Desligado";
-            stopAudioAnalyser();
-        }
-        buildCombinedStream();
-    }
-
-    async function toggleCameraHardware() {
-        const btn = document.getElementById('btn-voice-camera');
-        const videoEl = document.getElementById('webcam-stream-element');
-        const avatarBox = document.getElementById('voice-avatar-container-self');
-
-        if(!cameraAtiva) {
-            try {
-                // Desativa ecrã se estiver ativo para evitar conflito visual local
-                if(telaAtiva) await toggleScreenShareHardware();
-
-                localWebcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
-                cameraAtiva = true;
-                btn.classList.add('active-green');
-                
-                videoEl.srcObject = localWebcamStream;
-                videoEl.style.display = 'block';
-                avatarBox.style.display = 'none';
-            } catch(e) {
-                alert("Falha ao abrir câmara: " + e.message);
-                return;
-            }
-        } else {
-            if(localWebcamStream) {
-                localWebcamStream.getTracks().forEach(t => t.stop());
-                localWebcamStream = null;
-            }
-            cameraAtiva = false;
-            btn.classList.remove('active-green');
-            videoEl.style.display = 'none';
-            videoEl.srcObject = null;
-            avatarBox.style.display = 'flex';
-        }
-        buildCombinedStream();
-    }
-
-    async function toggleScreenShareHardware() {
-        const btn = document.getElementById('btn-voice-screen');
-        const screenEl = document.getElementById('screen-stream-element');
-        const webcamEl = document.getElementById('webcam-stream-element');
-        const avatarBox = document.getElementById('voice-avatar-container-self');
-
-        if(!telaAtiva) {
-            try {
-                localScreenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                telaAtiva = true;
-                btn.classList.add('active-green');
-
-                // Esconde câmara local para dar foco ao ecrã partilhado
-                webcamEl.style.display = 'none';
-                avatarBox.style.display = 'none';
-                
-                screenEl.srcObject = localScreenStream;
-                screenEl.style.display = 'block';
-
-                localScreenStream.getVideoTracks()[0].onended = () => {
-                    if(telaAtiva) toggleScreenShareHardware();
-                };
-            } catch(e) {
-                console.warn("Partilha de ecrã cancelada ou falhou: " + e.message);
-                return;
-            }
-        } else {
-            if(localScreenStream) {
-                localScreenStream.getTracks().forEach(t => t.stop());
-                localScreenStream = null;
-            }
-            telaAtiva = false;
-            btn.classList.remove('active-green');
-            screenEl.style.display = 'none';
-            screenEl.srcObject = null;
-
-            // Restaura visualização local anterior
-            if(cameraAtiva) {
-                webcamEl.style.display = 'block';
-            } else {
-                avatarBox.style.display = 'flex';
-            }
-        }
-        buildCombinedStream();
-    }
-
-    /* ANALYSER DE ÁUDIO LOCAL */
-    function setupAudioAnalyser(stream) {
-        try {
-            window.AudioContext = window.AudioContext || window.webkitAudioContext;
-            audioContext = new AudioContext();
-            analyser = audioContext.createAnalyser();
-            analyser.fftSize = 512;
-            microphoneSource = audioContext.createMediaStreamSource(stream);
-            javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
-            
-            analyser.smoothingTimeConstant = 0.4;
-            microphoneSource.connect(analyser);
-            analyser.connect(javascriptNode);
-            javascriptNode.connect(audioContext.destination);
-
-            javascriptNode.onaudioprocess = () => {
-                const array = new Uint8Array(analyser.frequencyBinCount);
-                analyser.getByteFrequencyData(array);
-                let values = 0;
-                const length = array.length;
-                for (let i = 0; i < length; i++) { values += array[i]; }
-                const average = values / length;
-                
-                const selfCard = document.getElementById('voice-card-self');
-                if(average > 18) {
-                    selfCard.classList.add('speaking');
-                } else {
-                    selfCard.classList.remove('speaking');
-                }
-            };
-        } catch(e){ console.error(e); }
-    }
-
-    function stopAudioAnalyser() {
-        if(javascriptNode) { javascriptNode.onaudioprocess = null; javascriptNode.disconnect(); javascriptNode = null;}
-        if(microphoneSource) { microphoneSource.disconnect(); microphoneSource = null; }
-        if(analyser) { analyser.disconnect(); analyser = null; }
-        if(audioContext) { audioContext.close(); audioContext = null; }
-        document.getElementById('voice-card-self').classList.remove('speaking');
-    }
-
-    /* PEERJS ARCHITECTURE COM DATA CHANNELS INTEGRADOS */
+    /* WEBRTC REAL - CONFIGURAÇÃO DO PEERJS */
     function initPeerConnection() {
-        // Inicializa o PeerJS sem ID estático para o servidor atribuir um hash limpo
-        peer = new Peer({
-            debug: 1
-        });
+        peer = new Peer(undefined, { debug: 1 });
 
         peer.on('open', (id) => {
-            document.getElementById('generated-code-box').textContent = id;
-            injetarMensagemSistema(`Estação mapeada na nuvem global PeerJS. ID: ${id}`);
+            currentRoomCode = id;
+            document.getElementById('generated-code-box').textContent = currentRoomCode;
+            document.getElementById('room-id-display').textContent = `SUA PORTA: ${currentRoomCode}`;
+            injetarMensagemSistema(`Estação sincronizada com a Nuvem. Sua chave de conexão é [${currentRoomCode}].`);
+        });
+
+        // Evento para quando o canal de texto/dados é aberto vindo do seu amigo
+        peer.on('connection', (conn) => {
+            setupDataChannel(conn);
+        });
+
+        // Evento disparado quando alguém liga para você
+        peer.on('call', async (call) => {
+            injetarMensagemSistema(`Recebendo conexão de entrada na porta ativa...`);
+            currentCall = call;
+            
+            await verificarGarantiaDeStreamLocal();
+            call.answer(combinedStream);
+            switchTab('voice', document.getElementById('btn-tab-voice'));
+            
+            call.on('stream', (remoteStream) => {
+                renderizarVideoDoAmigo(remoteStream, call.peer);
+            });
+            call.on('close', () => {
+                removerVideoDoAmigo(call.peer);
+            });
         });
 
         peer.on('error', (err) => {
-            console.error("Erro no módulo PeerJS:", err);
-            injetarMensagemSistema(`[ERRO CRÍTICO CRON]: ${err.type}`);
-        });
-
-        // 1. Escuta chamadas de vídeo recebidas
-        peer.on('call', (call) => {
-            injetarMensagemSistema("Recebendo link de transmissão multimédia de outra estação...");
-            
-            // Se não tiver nenhum stream configurado ainda, gera um stream vazio padrão
-            if (!combinedStream) {
-                buildCombinedStream();
-            }
-            
-            call.answer(combinedStream);
-            handleIncomingCall(call);
-        });
-
-        // 2. Escuta conexões de dados recebidas (Para Sincronizar Foto e Chat)
-        peer.on('connection', (conn) => {
-            setupDataConnectionEvents(conn);
+            console.error("Erro no canal de voz PeerJS:", err);
+            alert("Não foi possível conectar à porta informada. Verifique se o código está correto.");
         });
     }
 
     function gerarNovaPortaDinamica() {
-        if(peer && peer.id) {
-            navigator.clipboard.writeText(peer.id);
-            injetarMensagemSistema("Código da porta copiado para a área de transferência com sucesso!");
-        } else {
-            alert("O sistema de rede ainda está sincronizando. Aguarde.");
+        if(currentRoomCode) {
+            document.getElementById('generated-code-box').textContent = currentRoomCode;
+            document.getElementById('room-id-display').textContent = `SUA PORTA: ${currentRoomCode}`;
+            injetarMensagemSistema(`Sua porta de comunicação atualizada na UI: [${currentRoomCode}]. Compartilhe com seu amigo.`);
         }
     }
 
-    function conectarViaCodigoPorta() {
-        const targetId = document.getElementById('input-join-code').value.trim();
-        if(!targetId) { alert("Introduza uma porta válida!"); return; }
-        if(peer && targetId === peer.id) { alert("Não pode ligar-se à sua própria porta!"); return; }
+    // Ligar/Aceder à porta do seu amigo remoto
+    async function conectarViaCodigoPorta() {
+        const codeInput = document.getElementById('input-join-code').value.trim();
+        if(!codeInput) return;
 
-        injetarMensagemSistema(`Tentando aceder à porta remota [${targetId}]...`);
-
-        // Cria o canal de dados primeiro
-        const conn = peer.connect(targetId);
-        setupDataConnectionEvents(conn);
-
-        // Inicializa a chamada de média
-        if (!combinedStream) {
-            buildCombinedStream();
-        }
-        const call = peer.call(targetId, combinedStream);
-        handleIncomingCall(call);
-        
+        document.getElementById('room-id-display').textContent = `SALA: ${codeInput}`;
         switchTab('voice', document.getElementById('btn-tab-voice'));
-    }
+        
+        injetarMensagemSistema(`Tentando pareamento WebRTC na porta remota [${codeInput}]...`);
+        
+        // Abre o canal de dados para troca de informações de perfil e chat real
+        const conn = peer.connect(codeInput);
+        setupDataChannel(conn);
 
-    // Gerencia o fluxo de chamadas e renderização de vídeo remoto
-    function handleIncomingCall(call) {
+        await verificarGarantiaDeStreamLocal();
+
+        const call = peer.call(codeInput, combinedStream);
         currentCall = call;
-        document.getElementById('room-id-display').textContent = `SALA OPERATIVA ATIVA`;
 
         call.on('stream', (remoteStream) => {
-            // Verifica se o card do utilizador remoto já existe
-            let remoteCard = document.getElementById('voice-card-remote');
-            if(!remoteCard) {
-                remoteCard = document.createElement('div');
-                remoteCard.className = 'user-video-card';
-                remoteCard.id = 'voice-card-remote';
-                remoteCard.innerHTML = `
-                    <div class="voice-card-top-badges">
-                        <span class="voice-card-mic-status">🎤 Remoto</span>
-                        <button class="btn-fullscreen-card" onclick="toggleAbsoluteFullscreen('voice-card-remote')">🔲</button>
-                    </div>
-                    <video id="remote-video-element" class="video-render-element" autoplay playsinline></video>
-                    <div class="voice-card-center-ui" id="voice-avatar-container-remote">
-                        <img src="" id="voice-panel-avatar-remote" class="voice-card-avatar" alt="Avatar">
-                    </div>
-                    <span class="voice-card-name" id="voice-user-display-remote">Estação Remota</span>
-                `;
-                document.getElementById('voice-users-grid').appendChild(remoteCard);
-            }
-
-            const videoEl = document.getElementById('remote-video-element');
-            const avatarBox = document.getElementById('voice-avatar-container-remote');
-
-            // Verifica se o stream remoto contém faixas de vídeo ativas
-            const temVideo = remoteStream.getVideoTracks().length > 0;
-
-            if (temVideo) {
-                videoEl.srcObject = remoteStream;
-                videoEl.style.display = 'block';
-                avatarBox.style.display = 'none';
-            } else {
-                videoEl.style.display = 'none';
-                videoEl.srcObject = null;
-                avatarBox.style.display = 'flex';
-            }
-
-            // Monitora dinamicamente a ativação/desativação de faixas remotas
-            remoteStream.onaddtrack = () => {
-                const vTracks = remoteStream.getVideoTracks();
-                if(vTracks.length > 0) {
-                    videoEl.srcObject = remoteStream;
-                    videoEl.style.display = 'block';
-                    avatarBox.style.display = 'none';
-                }
-            };
+            renderizarVideoDoAmigo(remoteStream, codeInput);
         });
-
         call.on('close', () => {
-            limparSessaoRemota();
+            removerVideoDoAmigo(codeInput);
         });
+
+        document.getElementById('input-join-code').value = "";
     }
 
-    // Configura eventos do canal de dados (Sincronização Absoluta de Identidade)
-    function setupDataConnectionEvents(conn) {
+    // Configura e gerencia o canal de dados em tempo real (Chat real e Perfis)
+    function setupDataChannel(conn) {
         dataConnection = conn;
-
-        conn.on('open', () => {
-            // Envia imediatamente a sua identidade (Nome e Foto Base64) ao conectar
-            conn.send({
+        
+        dataConnection.on('open', () => {
+            // Assim que o canal abre, envia os dados locais para o amigo mapear na interface dele
+            dataConnection.send({
                 type: 'identity',
                 name: localStorage.getItem('astryxz_user') || "Operador",
                 avatar: base64AvatarData
             });
         });
 
-        conn.on('data', (data) => {
-            if(!data || !data.type) return;
-
-            if(data.type === 'identity') {
-                // Sincroniza a imagem de perfil e o nome do outro utilizador nos componentes dinâmicos
-                setTimeout(() => {
-                    const rAvatar = document.getElementById('voice-panel-avatar-remote');
-                    const rName = document.getElementById('voice-user-display-remote');
-                    if(rAvatar) rAvatar.src = data.avatar;
-                    if(rName) rName.textContent = data.name;
-                }, 400);
-                injetarMensagemSistema(`Estação remota identificada como: "${data.name}"`);
+        dataConnection.on('data', (data) => {
+            if(data && data.type === 'identity') {
+                // Guarda temporariamente os dados do amigo remoto na estrutura DOM
+                const amigoCard = document.getElementById(conn.peer);
+                if(amigoCard) {
+                    const nameLabel = amigoCard.querySelector('.voice-card-name');
+                    if(nameLabel) nameLabel.textContent = data.name;
+                }
+                // Atribui propriedades customizadas ao objeto de conexão para usar no chat secundário
+                dataConnection.peerName = data.name;
+                dataConnection.peerAvatar = data.avatar;
             }
-            
-            if(data.type === 'chat') {
-                adicionarMensagemNaTela(data.author, data.text, data.avatar);
+            if(data && data.type === 'chat') {
+                const time = new Date().toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'});
+                document.getElementById('chat-screen').insertAdjacentHTML('beforeend', `
+                    <div class="chat-msg">
+                        <img src="${dataConnection.peerAvatar || base64AvatarData}" class="chat-msg-avatar">
+                        <div class="chat-msg-content">
+                            <div class="chat-msg-header"><span class="chat-msg-author">${dataConnection.peerName || 'Terminal Remoto'}</span><span class="chat-msg-time">Hoje às ${time}</span></div>
+                            <div class="chat-msg-text">${data.message.replace(/</g, "&lt;")}</div>
+                        </div>
+                    </div>
+                `);
+                const s = document.getElementById('chat-screen'); s.scrollTop = s.scrollHeight;
             }
         });
+    }
 
-        conn.on('close', () => {
-            limparSessaoRemota();
-        });
+    // Auxiliar para injetar dinamicamente a box de vídeo do amigo remoto no Grid
+    function renderizarVideoDoAmigo(remoteStream, amigoId) {
+        const grid = document.getElementById('voice-users-grid');
+        
+        if(document.getElementById(amigoId)) {
+            document.getElementById(amigoId).remove();
+        }
+
+        const amigoNomeInicial = (dataConnection && dataConnection.peer === amigoId && dataConnection.peerName) ? dataConnection.peerName : `Terminal Remoto [${amigoId.substring(0,6)}]`;
+
+        const boxHtml = `
+            <div class="user-video-card" id="${amigoId}">
+                <div class="voice-card-top-badges">
+                    <span class="voice-card-mic-status">🎤 Conectado</span>
+                    <button class="btn-fullscreen-card" onclick="toggleAbsoluteFullscreen('${amigoId}')">🔲</button>
+                </div>
+                <video id="video-element-${amigoId}" class="video-render-element" autoplay playsinline style="display:block;"></video>
+                <span class="voice-card-name">${amigoNomeInicial}</span>
+            </div>
+        `;
+        
+        grid.insertAdjacentHTML('beforeend', boxHtml);
+        
+        const remoteVideoEl = document.getElementById(`video-element-${amigoId}`);
+        remoteVideoEl.srcObject = remoteStream;
+        
+        injetarMensagemSistema(`Sucesso! Conexão ponto-a-ponto estabelecida com o terminal remoto.`);
+    }
+
+    function removerVideoDoAmigo(amigoId) {
+        const el = document.getElementById(amigoId);
+        if(el) {
+            el.remove();
+            injetarMensagemSistema(`O terminal remoto desconectou da chamada.`);
+        }
+    }
+
+    async function verificarGarantiaDeStreamLocal() {
+        if (!combinedStream) {
+            try {
+                localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                combinedStream = localAudioStream;
+                micAtivo = true;
+                document.getElementById('btn-voice-mic').classList.add('active-green');
+                document.getElementById('voice-status-label').textContent = "🎤 Ligado";
+            } catch(e) {
+                const mockCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const mockDst = mockCtx.createMediaStreamDestination();
+                combinedStream = mockDst.stream;
+            }
+        }
+    }
+
+    function atualizarStreamUnificado() {
+        const tracks = [];
+        if (localAudioStream && localAudioStream.getAudioTracks().length > 0) {
+            tracks.push(localAudioStream.getAudioTracks()[0]);
+        }
+        if (telaAtiva && localScreenStream) {
+            tracks.push(localScreenStream.getVideoTracks()[0]);
+        } else if (cameraAtiva && localWebcamStream) {
+            tracks.push(localWebcamStream.getVideoTracks()[0]);
+        }
+        
+        combinedStream = new MediaStream(tracks);
+        
+        if (currentCall && currentCall.peerConnection) {
+            const senders = currentCall.peerConnection.getSenders();
+            senders.forEach(sender => {
+                if (sender.track && sender.track.kind === 'video') {
+                    const videoTrack = tracks.find(t => t.kind === 'video');
+                    if (videoTrack) sender.replaceTrack(videoTrack);
+                }
+                if (sender.track && sender.track.kind === 'audio') {
+                    const audioTrack = tracks.find(t => t.kind === 'audio');
+                    if (audioTrack) sender.replaceTrack(audioTrack);
+                }
+            });
+        }
+    }
+
+    function toggleAbsoluteFullscreen(cardId) {
+        const card = document.getElementById(cardId);
+        if (card.classList.contains('maximized-fullscreen')) {
+            card.classList.remove('maximized-fullscreen');
+        } else {
+            document.querySelectorAll('.user-video-card').forEach(c => c.classList.remove('maximized-fullscreen'));
+            card.classList.add('maximized-fullscreen');
+        }
+    }
+
+    /* HARDWARE MULTIMÍDIA */
+    async function toggleMicHardware() {
+        const btn = document.getElementById('btn-voice-mic'), label = document.getElementById('voice-status-label'), selfCard = document.getElementById('voice-card-self');
+        if (!micAtivo) {
+            try {
+                localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                micAtivo = true; btn.classList.add('active-green'); label.textContent = "🎤 Ligado";
+                
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser(); microphoneSource = audioContext.createMediaStreamSource(localAudioStream);
+                javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+                analyser.smoothingTimeConstant = 0.8; analyser.fftSize = 1024;
+                microphoneSource.connect(analyser); analyser.connect(javascriptNode); javascriptNode.connect(audioContext.destination);
+                javascriptNode.onaudioprocess = () => {
+                    const array = new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(array);
+                    let values = 0; for (let i = 0; i < array.length; i++) { values += array[i]; }
+                    if ((values / array.length) > 12) { selfCard.classList.add('speaking'); } else { selfCard.classList.remove('speaking'); }
+                };
+                atualizarStreamUnificado();
+            } catch (err) { alert("Microfone indisponível ou permissão negada."); }
+        } else {
+            if(localAudioStream) localAudioStream.getTracks().forEach(track => track.stop());
+            if(javascriptNode) javascriptNode.disconnect();
+            micAtivo = false; btn.classList.remove('active-green'); label.textContent = "🎤 Desligado"; selfCard.classList.remove('speaking');
+            atualizarStreamUnificado();
+        }
+    }
+
+    async function toggleCameraHardware() {
+        const btn = document.getElementById('btn-voice-camera'), videoEl = document.getElementById('webcam-stream-element'), avatarBox = document.getElementById('voice-avatar-container-self');
+        if (!cameraAtiva) {
+            try {
+                localWebcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+                videoEl.srcObject = localWebcamStream; videoEl.style.display = 'block'; avatarBox.style.display = 'none';
+                cameraAtiva = true; btn.classList.add('active-green');
+                atualizarStreamUnificado();
+            } catch (err) { alert("Câmera não encontrada ou permissão recusada."); }
+        } else {
+            if (localWebcamStream) localWebcamStream.getTracks().forEach(track => track.stop());
+            videoEl.style.display = 'none'; if(!telaAtiva) avatarBox.style.display = 'flex';
+            cameraAtiva = false; btn.classList.remove('active-green');
+            atualizarStreamUnificado();
+        }
+    }
+
+    async function toggleScreenShareHardware() {
+        const btn = document.getElementById('btn-voice-screen'), videoEl = document.getElementById('screen-stream-element'), avatarBox = document.getElementById('voice-avatar-container-self');
+        if (!telaAtiva) {
+            try {
+                localScreenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                videoEl.srcObject = localScreenStream; videoEl.style.display = 'block'; avatarBox.style.display = 'none';
+                telaAtiva = true; btn.classList.add('active-green');
+                localScreenStream.getVideoTracks()[0].onended = () => { apagarApresentacaoTela(); };
+                atualizarStreamUnificado();
+            } catch (err) { console.error(err); }
+        } else { apagarApresentacaoTela(); }
+    }
+
+    function apagarApresentacaoTela() {
+        const btn = document.getElementById('btn-voice-screen'), videoEl = document.getElementById('screen-stream-element'), avatarBox = document.getElementById('voice-avatar-container-self');
+        if (localScreenStream) localScreenStream.getTracks().forEach(track => track.stop());
+        videoEl.style.display = 'none'; if (!cameraAtiva) avatarBox.style.display = 'flex';
+        telaAtiva = false; btn.classList.remove('active-green');
+        atualizarStreamUnificado();
     }
 
     function sairDaCall() {
-        if(currentCall) currentCall.close();
-        if(dataConnection) dataConnection.close();
-        limparSessaoRemota();
-        injetarMensagemSistema("Você desconectou-se da transmissão atual.");
-    }
-
-    function limparSessaoRemota() {
-        const card = document.getElementById('voice-card-remote');
-        if(card) card.remove();
-        document.getElementById('room-id-display').textContent = `SALA: AGUARDANDO DIRETRIZ`;
-        currentCall = null;
-        dataConnection = null;
-    }
-
-    /* INTERFACES DE NAVEGAÇÃO INTERNA */
-    function switchTab(target, btn) {
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        if(currentCall) {
+            currentCall.close();
+        }
+        if(localAudioStream) localAudioStream.getTracks().forEach(track => track.stop());
+        if(localWebcamStream) localWebcamStream.getTracks().forEach(track => track.stop());
+        if(localScreenStream) localScreenStream.getTracks().forEach(track => track.stop());
         
-        document.getElementById(`tab-${target}`).classList.add('active');
-        btn.classList.add('active');
+        document.getElementById('webcam-stream-element').style.display = 'none';
+        document.getElementById('screen-stream-element').style.display = 'none';
+        document.getElementById('voice-avatar-container-self').style.display = 'flex';
+        
+        document.querySelectorAll('.user-video-card').forEach(card => {
+            if(card.id !== 'voice-card-self') card.remove();
+        });
+
+        micAtivo = cameraAtiva = telaAtiva = false;
+        combinedStream = null;
+        document.getElementById('btn-voice-mic').classList.remove('active-green');
+        document.getElementById('btn-voice-camera').classList.remove('active-green');
+        document.getElementById('btn-voice-screen').classList.remove('active-green');
+        switchTab('notes', document.getElementById('btn-tab-notes'));
+        injetarMensagemSistema("Conexão encerrada pelo operador.");
     }
 
-    function changeTheme(theme, btn) {
-        document.body.className = `theme-${theme}`;
-        currentTheme = theme;
-        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+    function switchTab(tabId, btnElement) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+        if(btnElement) btnElement.classList.add('active');
     }
 
-    function toggleAbsoluteFullscreen(id) {
-        const el = document.getElementById(id);
-        if(!el) return;
-        el.classList.toggle('maximized-fullscreen');
-    }
-
-    /* CHAT TERMINAL */
     function enviarMensagem() {
         const input = document.getElementById('chat-input');
-        const text = input.value.trim();
-        if(!text) return;
-
-        const meuNome = localStorage.getItem('astryxz_user') || "Operador";
-        adicionarMensagemNaTela(meuNome, text, base64AvatarData);
-
-        if(dataConnection && dataConnection.open) {
-            dataConnection.send({
-                type: 'chat',
-                author: meuNome,
-                text: text,
-                avatar: base64AvatarData
-            });
-        }
-        input.value = "";
-    }
-
-    function adicionarMensagemNaTela(autor, texto, avatarUrl) {
-        const screen = document.getElementById('chat-screen');
-        const d = new Date();
-        const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-
-        const msg = document.createElement('div');
-        msg.className = 'chat-msg';
-        msg.innerHTML = `
-            <img src="${avatarUrl}" class="chat-msg-avatar" alt="av">
-            <div class="chat-msg-content">
-                <div class="chat-msg-header">
-                    <span class="chat-msg-author">${autor}</span>
-                    <span class="chat-msg-time">${timeStr}</span>
+        const msgText = input.value.trim();
+        if(msgText !== "") {
+            const user = localStorage.getItem('astryxz_user') || "Operador";
+            const time = new Date().toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'});
+            
+            // Exibe localmente no chat com a sua foto base64 real
+            document.getElementById('chat-screen').insertAdjacentHTML('beforeend', `
+                <div class="chat-msg">
+                    <img src="${base64AvatarData}" class="chat-msg-avatar">
+                    <div class="chat-msg-content">
+                        <div class="chat-msg-header"><span class="chat-msg-author">${user}</span><span class="chat-msg-time">Hoje às ${time}</span></div>
+                        <div class="chat-msg-text">${msgText.replace(/</g, "&lt;")}</div>
+                    </div>
                 </div>
-                <div class="chat-msg-text">${texto}</div>
-            </div>
-        `;
-        screen.appendChild(msg);
-        screen.scrollTop = screen.scrollHeight;
+            `);
+            
+            // Dispara para o amigo remoto via DataChannel
+            if(dataConnection && dataConnection.open) {
+                dataConnection.send({ type: 'chat', message: msgText });
+            }
+            
+            input.value = "";
+            const s = document.getElementById('chat-screen'); s.scrollTop = s.scrollHeight;
+        }
     }
 
     function injetarMensagemSistema(texto) {
-        adicionarMensagemNaTela("CORE-SYSTEM", texto, "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%23f43f5e'/></svg>");
+        const time = new Date().toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'});
+        document.getElementById('chat-screen').insertAdjacentHTML('beforeend', `
+            <div class="chat-msg">
+                <div class="chat-msg-content">
+                    <div class="chat-msg-header"><span class="chat-msg-author" style="color:var(--highlight)">SISTEMA</span><span class="chat-msg-time">${time}</span></div>
+                    <div class="chat-msg-text">${texto}</div>
+                </div>
+            </div>
+        `);
+        const s = document.getElementById('chat-screen'); s.scrollTop = s.scrollHeight;
     }
 
-    /* BLOCCO DE NOTAS LOCAL */
     function criarAnotacao() {
-        const t = document.getElementById('note-title').value.trim() || "Sem Título";
-        const c = document.getElementById('note-text').value.trim();
-        if(!c) return;
-
-        const card = document.createElement('div');
-        card.className = 'note-card';
-        card.innerHTML = `
-            <div class="note-title" style="font-weight:700; margin-bottom:4px;">${t}</div>
-            <div class="note-text" style="font-size:13px; opacity:0.9;">${c}</div>
-            <div class="note-meta" style="font-size:10px; color:var(--text-accent); margin-top:8px;">Gravado agora</div>
-        `;
-        document.getElementById('notes-container').prepend(card);
-        document.getElementById('note-title').value = "";
-        document.getElementById('note-text').value = "";
+        const titleInput = document.getElementById('note-title'), textInput = document.getElementById('note-text');
+        if (titleInput.value.trim() !== "" || textInput.value.trim() !== "") {
+            document.getElementById('notes-container').insertAdjacentHTML('afterbegin', `
+                <div class="note-card"><div class="note-title">${titleInput.value || "Sem Título"}</div><div class="note-text">${textInput.value}</div><div class="note-meta">Agora</div></div>
+            `);
+            titleInput.value = ""; textInput.value = "";
+        }
     }
 
-    function iniciarRelogio() {
-        setInterval(() => {
-            const d = new Date();
-            document.getElementById('sys-clock').textContent = d.toTimeString().split(' ')[0];
-        }, 1000);
-    }
+    function iniciarRelogio() { setInterval(() => { document.getElementById('sys-clock').textContent = new Date().toLocaleTimeString('pt-PT'); }, 1000); }
+    function changeTheme(themeName, btnElement) { currentTheme = themeName; document.body.className = themeName === 'aurora' ? '' : 'theme-' + themeName; document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active')); btnElement.classList.add('active'); setupCanvas(); }
 
-    /* ENGINE DE RENDERIZAÇÃO ANIMADA (CANVAS) */
+    /* BACKGROUND ANIMATION ENGINE */
+    window.addEventListener('resize', setupCanvas);
     function setupCanvas() {
-        const resize = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        };
-        window.addEventListener('resize', resize);
-        resize();
-
-        // Popula as partículas base
+        canvas.width = window.innerWidth; 
+        canvas.height = window.innerHeight; 
         particles = [];
-        for (let i = 0; i < 45; i++) {
-            particles.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                size: Math.random() * 2.5 + 0.5,
-                vx: (Math.random() - 0.5) * 0.4,
-                vy: (Math.random() - 0.5) * 0.4,
-                weight: Math.random()
+        
+        let pCount = currentTheme === 'aurora' ? 40 : 80;
+        for(let i=0; i < pCount; i++) {
+            particles.push({ 
+                x: Math.random() * canvas.width, 
+                y: Math.random() * canvas.height, 
+                size: Math.random() * 4 + 1, 
+                vx: (Math.random() - 0.5) * 0.8, 
+                vy: currentTheme === 'sakura' || currentTheme === 'floresta' ? (Math.random() * 0.6 + 0.4) : (Math.random() - 0.5) * 0.6,
+                angle: Math.random() * Math.PI * 2,
+                weight: Math.random() * 0.5 + 0.2
             });
         }
-        requestAnimationFrame(renderLoop);
     }
 
-    function renderLoop() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        waveOffset += 0.004;
-        auroraTime += 0.002;
+    function draw() {
+        const bgFills = { 
+            'aurora': '2, 6, 23', 
+            'cyberpunk': '10, 10, 0', 
+            'sakura': '42, 8, 19', 
+            'oceano': '0, 11, 24', 
+            'floresta': '2, 15, 4',
+            'nuke': '8, 13, 2'
+        };
+        ctx.fillStyle = `rgba(${bgFills[currentTheme] || bgFills['aurora']}, 0.25)`; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Efeitos de Fundo Baseados nos Temas Estéticos Dinâmicos
+        // 1. DESENHAR FUNDOS COMPLEXOS / ILUSTRAÇÕES 
         if (currentTheme === 'aurora') {
-            // Gradiente Aurora Boreal Fluido
-            const g = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-            g.addColorStop(0, '#020617');
-            g.addColorStop(0.5, `rgba(15, 118, 110, ${0.08 + Math.sin(auroraTime)*0.03})`);
-            g.addColorStop(1, '#020617');
-            ctx.fillStyle = g;
-            ctx.fillRect(0,0, canvas.width, canvas.height);
+            auroraTime += 0.004;
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            
+            // Camadas de Ondas Dinâmicas Fluorescentes simulando a Aurora Boreal
+            for(let i = 0; i < 3; i++) {
+                let gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                if(i === 0) {
+                    gradient.addColorStop(0, 'rgba(16, 185, 129, 0)');
+                    gradient.addColorStop(0.5, 'rgba(56, 189, 248, 0.12)');
+                    gradient.addColorStop(1, 'rgba(129, 140, 248, 0)');
+                } else if(i === 1) {
+                    gradient.addColorStop(0, 'rgba(129, 140, 248, 0)');
+                    gradient.addColorStop(0.4, 'rgba(16, 185, 129, 0.15)');
+                    gradient.addColorStop(0.8, 'rgba(56, 189, 248, 0)');
+                } else {
+                    gradient.addColorStop(0, 'rgba(56, 189, 248, 0)');
+                    gradient.addColorStop(0.6, 'rgba(139, 92, 246, 0.1)');
+                    gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
+                }
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.moveTo(0, canvas.height);
+                
+                // Algoritmo matemático para gerar curvas orgânicas
+                for (let x = 0; x <= canvas.width; x += 30) {
+                    let factor1 = (x * 0.002) + auroraTime + (i * 5);
+                    let factor2 = (x * 0.005) - (auroraTime * 0.5);
+                    let y = (canvas.height * 0.3) + 
+                            Math.sin(factor1) * 90 + 
+                            Math.cos(factor2) * 50 + 
+                            Math.sin(x * 0.001 + auroraTime * 2) * 40;
+                    ctx.lineTo(x, y);
+                }
+                ctx.lineTo(canvas.width, canvas.height);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+        else if (currentTheme === 'floresta') {
+            ctx.fillStyle = "rgba(4, 26, 8, 0.4)";
+            for(let i = 0; i < canvas.width; i += 120) {
+                ctx.beginPath();
+                ctx.moveTo(i, canvas.height);
+                ctx.lineTo(i + 40, canvas.height - 180);
+                ctx.lineTo(i + 80, canvas.height);
+                ctx.fill();
+                ctx.fillStyle = "rgba(2, 12, 4, 0.5)";
+                ctx.fillRect(i + 36, canvas.height - 60, 8, 60);
+                ctx.fillStyle = "rgba(4, 26, 8, 0.4)";
+            }
+        } 
+        else if (currentTheme === 'sakura') {
+            ctx.fillStyle = "rgba(24, 4, 10, 0.5)";
+            let cx = canvas.width / 2 - 150;
+            let cy = canvas.height - 250;
+            ctx.fillRect(cx + 30, cy + 120, 240, 130);
+            ctx.beginPath();
+            ctx.moveTo(cx, cy + 120);
+            ctx.quadraticCurveTo(cx + 150, cy + 100, cx + 300, cy + 120);
+            ctx.lineTo(cx + 260, cy + 80);
+            ctx.lineTo(cx + 40, cy + 80);
+            ctx.closePath(); ctx.fill();
+            ctx.fillRect(cx + 60, cy + 30, 180, 50);
+            ctx.beginPath();
+            ctx.moveTo(cx + 20, cy + 30);
+            ctx.quadraticCurveTo(cx + 150, cy, cx + 280, cy + 30);
+            ctx.lineTo(cx + 220, cy - 20);
+            ctx.lineTo(cx + 80, cy - 20);
+            ctx.closePath(); ctx.fill();
         } 
         else if (currentTheme === 'cyberpunk') {
-            ctx.fillStyle = '#0a0a00';
-            ctx.fillRect(0,0, canvas.width, canvas.height);
-            // Grelha Cyber estática sutil
-            ctx.strokeStyle = 'rgba(255, 255, 0, 0.015)';
-            ctx.lineWidth = 1;
-            for(let i=0; i<canvas.width; i+=40){
-                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+            ctx.strokeStyle = "rgba(255, 255, 0, 0.05)";
+            ctx.lineWidth = 12;
+            ctx.beginPath();
+            ctx.moveTo(canvas.width * 0.1, canvas.height * 0.8);
+            ctx.bezierCurveTo(canvas.width * 0.3, canvas.height * 0.2, canvas.width * 0.5, canvas.height * 0.9, canvas.width * 0.7, canvas.height * 0.3);
+            ctx.quadraticCurveTo(canvas.width * 0.85, canvas.height * 0.1, canvas.width * 0.9, canvas.height * 0.4);
+            ctx.stroke();
+            
+            ctx.fillStyle = "rgba(255, 255, 0, 0.04)";
+            ctx.beginPath();
+            ctx.arc(canvas.width * 0.9, canvas.height * 0.4, 50, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (Math.random() < 0.15) {
+                ctx.strokeStyle = "rgba(255, 255, 0, 0.4)";
+                ctx.lineWidth = Math.random() * 3 + 1;
+                ctx.beginPath();
+                let rx = Math.random() * canvas.width;
+                ctx.moveTo(rx, 0);
+                ctx.lineTo(rx + (Math.random() - 0.5) * 100, canvas.height * 0.3);
+                ctx.lineTo(rx + (Math.random() - 0.5) * 200, canvas.height * 0.7);
+                ctx.lineTo(rx + (Math.random() - 0.5) * 50, canvas.height);
+                ctx.stroke();
             }
         }
-        else if (currentTheme === 'sakura') {
-            const g = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 10, canvas.width/2, canvas.height/2, canvas.width);
-            g.addColorStop(0, '#1c050c');
-            g.addColorStop(1, '#3c0a18');
-            ctx.fillStyle = g;
-            ctx.fillRect(0,0, canvas.width, canvas.height);
-        }
         else if (currentTheme === 'oceano') {
-            ctx.fillStyle = '#000814';
-            ctx.fillRect(0,0, canvas.width, canvas.height);
-            // Ondas Sinusoidais Abissais
-            ctx.fillStyle = 'rgba(0, 119, 182, 0.03)';
+            waveOffset += 0.015;
+            ctx.fillStyle = "rgba(0, 32, 64, 0.3)";
             ctx.beginPath();
             ctx.moveTo(0, canvas.height);
-            for(let x=0; x<=canvas.width; x+=20) {
-                let y = canvas.height - 120 + Math.sin(x*0.003 + waveOffset)*40;
+            for (let x = 0; x <= canvas.width; x += 20) {
+                let y = canvas.height - 120 + Math.sin(x * 0.004 + waveOffset) * 25 + Math.cos(x * 0.008 + waveOffset) * 10;
                 ctx.lineTo(x, y);
             }
             ctx.lineTo(canvas.width, canvas.height);
-            ctx.fill();
+            ctx.closePath(); ctx.fill();
+        }
+        else if (currentTheme === 'nuke') {
+            let midX = canvas.width / 2;
+            let midY = canvas.height / 2;
+            ctx.strokeStyle = "rgba(57, 255, 20, 0.04)";
+            ctx.fillStyle = "rgba(57, 255, 20, 0.03)";
+            
+            ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.arc(midX, midY, 140, 0, Math.PI*2); ctx.stroke();
+            
+            for(let a=0; a<3; a++) {
+                let startAng = (a * 120 * Math.PI / 180) + (Date.now()/5000);
+                let endAng = startAng + (60 * Math.PI / 180);
+                ctx.beginPath();
+                ctx.moveTo(midX, midY);
+                ctx.arc(midX, midY, 120, startAng, endAng);
+                ctx.closePath(); ctx.fill();
+            }
+            ctx.fillStyle = "rgba(8, 13, 2, 1)";
+            ctx.beginPath(); ctx.arc(midX, midY, 35, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "rgba(57, 255, 20, 0.04)";
+            ctx.beginPath(); ctx.arc(midX, midY, 25, 0, Math.PI*2); ctx.fill();
+
+            ctx.fillStyle = "rgba(25, 45, 10, 0.5)";
+            ctx.fillRect(40, canvas.height - 140, 70, 140); 
+            ctx.fillRect(canvas.width - 110, canvas.height - 140, 70, 140); 
+            ctx.fillStyle = "rgba(57, 255, 20, 0.3)";
+            ctx.fillRect(45, canvas.height - 130, 60, 10); 
+            ctx.fillRect(canvas.width - 105, canvas.height - 130, 60, 10);
         }
 
-        // Renderização e Atualização do Vetor de Partículas
+        // 2. RENDERIZAR E MOVER AS PARTÍCULAS
         particles.forEach(p => {
-            p.x += p.vx;
+            p.x += p.vx; 
             p.y += p.vy;
 
-            if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
-            if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
-
-            if (currentTheme === 'cyberpunk') {
+            if (currentTheme === 'sakura') {
+                p.vx = 0.5 + Math.sin(p.angle) * 0.2;
+                ctx.fillStyle = `rgba(244, 63, 94, ${p.weight})`;
+                ctx.beginPath();
+                ctx.ellipse(p.x, p.y, p.size * 1.5, p.size, Math.PI / 4, 0, Math.PI * 2);
+                ctx.fill();
+            } 
+            else if (currentTheme === 'floresta') {
+                p.vx = Math.sin(p.angle) * 0.3;
+                ctx.fillStyle = `rgba(16, 185, 129, ${p.weight + 0.2})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            } 
+            else if (currentTheme === 'oceano') {
+                p.vy = -Math.abs(p.vy) - 0.2;
+                ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size + 1, 0, Math.PI * 2);
+                ctx.stroke();
+            } 
+            else if (currentTheme === 'cyberpunk') {
                 ctx.fillStyle = "rgba(255, 255, 0, 0.7)";
                 ctx.fillRect(p.x, p.y, p.size, p.size);
             }
             else if (currentTheme === 'nuke') {
                 p.vy = -Math.abs(p.vy) - 0.4;
                 p.vx += (Math.random() - 0.5) * 0.3;
-                if(p.y < -10) p.y = canvas.height + 10;
                 ctx.fillStyle = `rgba(57, 255, 20, ${p.weight * 0.4})`;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
                 ctx.fill();
             }
             else if (currentTheme === 'aurora') {
+                // No tema aurora, partículas se movem sutilmente para cima simulando poeira estelar
                 p.vy = -0.15 - (p.size * 0.05);
-                if(p.y < -10) p.y = canvas.height + 10;
                 ctx.fillStyle = `rgba(56, 189, 248, ${p.weight * 0.6})`;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size * 1.2, 0, Math.PI * 2);
                 ctx.fill();
             }
             else {
-                ctx.fillStyle = "rgba(255,255,255,0.25)";
                 ctx.beginPath(); 
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); 
+                ctx.fillStyle = 'rgba(255,255,255,0.15)'; 
                 ctx.fill();
             }
+
+            if(p.x < 0) p.x = canvas.width; 
+            if(p.x > canvas.width) p.x = 0;
+            if(p.y < 0) p.y = canvas.height; 
+            if(p.y > canvas.height) p.y = 0;
+            p.angle += 0.01;
         });
 
-        requestAnimationFrame(renderLoop);
+        requestAnimationFrame(draw);
     }
+    setupCanvas(); 
+    draw();
 </script>
 </body>
 </html>
