@@ -31,7 +31,6 @@
         body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg-main); color: var(--text-main); margin: 0; padding: 0; min-height: 100vh; overflow: hidden; position: relative; }
         #fx-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; pointer-events: none; }
 
-        /* INTERFACE INICIAL DE AUTENTICAÇÃO */
         .welcome-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(10,15,30,0.95) 0%, rgba(2,4,12,1) 100%); backdrop-filter: blur(25px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 1; transition: opacity 0.4s ease; }
         .welcome-box { background: rgba(15, 23, 42, 0.85); border: 1px solid var(--border-color); padding: 40px; border-radius: 20px; width: 460px; text-align: center; box-shadow: 0 25px 60px rgba(0,0,0,0.8); }
         .welcome-box h2 { margin: 0 0 6px 0; font-size: 24px; font-weight: 700; letter-spacing: 0.5px; }
@@ -41,7 +40,6 @@
         .welcome-box input[type="text"]:focus, .account-edit-box input[type="text"]:focus { border-color: var(--highlight); box-shadow: 0 0 12px var(--glow); }
         .welcome-box input[type="text"] { margin-bottom: 20px; }
 
-        /* FILE UPLOAD COMPACTO */
         .file-upload-container { display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(5, 8, 16, 0.4); border: 2px dashed var(--border-color); padding: 20px; border-radius: 12px; margin-bottom: 25px; cursor: pointer; position: relative; }
         .file-upload-container:hover { border-color: var(--highlight); background: rgba(5, 8, 16, 0.6); }
         .file-upload-container input[type="file"] { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; }
@@ -52,11 +50,9 @@
         .btn-prime { background: linear-gradient(135deg, var(--highlight) 0%, #0284c7 100%); color: #fff; border: none; padding: 14px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; width: 100%; font-size: 14px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); }
         .btn-prime:hover { filter: brightness(1.1); transform: translateY(-1px); }
 
-        /* APLICATIVO CENTRAL */
         .app-container { max-width: 100vw; height: 100vh; padding: 14px; position: relative; z-index: 1; display: none; flex-direction: column; }
         .glass-panel { background: var(--bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--border-color); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
 
-        /* TOP BAR */
         .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 28px; margin-bottom: 12px; }
         .sys-header-left { display: flex; align-items: center; gap: 18px; }
         .user-top-avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--border-color); object-fit: cover; background: rgba(255,255,255,0.05); }
@@ -68,21 +64,18 @@
         .tab-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
         .tab-btn.active { background: rgba(255,255,255,0.08); border-color: var(--border-color); color: #fff; }
 
-        /* GRID */
         .main-grid { display: grid; grid-template-columns: 1fr 350px; gap: 14px; flex: 1; overflow: hidden; height: calc(100vh - 125px); }
         .content-area { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
         .tab-content { display: none; height: 100%; overflow-y: auto; padding: 20px; }
         .tab-content.active { display: block; }
         .panel-header { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-accent); margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; letter-spacing: 0.5px; }
 
-        /* MÓDULO CONTA */
         .account-box { max-width: 500px; margin: 0 auto; background: rgba(0,0,0,0.15); border: 1px solid var(--border-color); border-radius: 12px; padding: 30px; }
         .account-profile-area { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 25px; }
         .account-avatar-large { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid var(--highlight); box-shadow: 0 0 15px var(--glow); background: rgba(255,255,255,0.05); }
         .account-edit-box { display: flex; flex-direction: column; gap: 16px; margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 20px; }
         .account-edit-box h3 { margin: 0; font-size: 14px; color: var(--text-accent); text-transform: uppercase; letter-spacing: 0.5px; }
 
-        /* AGENDA */
         .agenda-layout { display: flex; flex-direction: column; gap: 20px; }
         .agenda-inputs { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; background: rgba(0,0,0,0.2); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); }
         .agenda-inputs input { background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 8px; color: #fff; font-size: 13px; outline: none; }
@@ -93,7 +86,6 @@
         .agenda-badge { background: rgba(56, 189, 248, 0.15); color: var(--highlight); padding: 4px 8px; border-radius: 6px; font-family: monospace; font-weight: bold; border: 1px solid var(--border-color); }
         .btn-action-del { background: transparent; border: none; color: var(--discord-red); cursor: pointer; font-weight: bold; }
 
-        /* NOTAS */
         .note-creator { display: flex; gap: 10px; margin-bottom: 20px; }
         .note-creator input, .note-creator textarea { background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; color: var(--text-main); outline: none; }
         .note-creator input { width: 30%; font-weight: bold; }
@@ -116,7 +108,6 @@
         .btn-fullscreen-card { background: rgba(3,4,8,0.7); border: none; padding: 4px 10px; border-radius: 6px; color: #fff; cursor: pointer; font-size: 11px; font-weight: bold; backdrop-filter: blur(4px); }
         .btn-fullscreen-card:hover { background: var(--highlight); color: #000; }
 
-        /* CONTROLES BAR */
         .voice-controls-bar-wrapper { padding: 0 20px 20px 20px; background: transparent; }
         .voice-controls-bar { background: var(--bg-call-bar); border: 1px solid var(--border-color); padding: 14px 26px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; }
         .voice-info-left { font-size: 12px; color: var(--text-accent); font-weight: 700; font-family: monospace; }
@@ -127,7 +118,6 @@
         .control-btn.btn-hangup { background: var(--discord-red); border: none; width: 48px; height: 48px; font-size: 18px; margin-left: 10px; }
         .control-btn.btn-hangup:hover { background: #d8363a; transform: scale(1.05); }
         
-        /* CHAT SIDEBAR */
         .sidebar { display: flex; flex-direction: column; gap: 12px; height: 100%; overflow: hidden; }
         .comm-channel-box { background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; }
         .comm-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
@@ -265,8 +255,7 @@
                                     <span class="voice-card-mic-status" id="voice-status-label">🎤 Desligado</span>
                                     <button class="btn-fullscreen-card" onclick="toggleAbsoluteFullscreen('voice-card-self')">🔲</button>
                                 </div>
-                                <video id="webcam-stream-element" class="video-render-element" autoplay playsinline muted></video>
-                                <video id="screen-stream-element" class="video-render-element" autoplay playsinline muted></video>
+                                <video id="shared-stream-element" class="video-render-element" autoplay playsinline muted></video>
                                 <div class="voice-card-center-ui" id="voice-avatar-container-self">
                                     <img src="" id="voice-panel-avatar" class="voice-card-avatar" alt="Avatar">
                                 </div>
@@ -356,21 +345,20 @@
     let agendadosList = [];
     let base64AvatarData = ''; 
     
-    let localAudioStream = null, localWebcamStream = null, localScreenStream = null;
-    let combinedStream = null; 
+    let localAudioStream = null, localVideoStream = null;
+    let combinedStream = new MediaStream(); 
     let audioContext = null, analyser = null, microphoneSource = null, javascriptNode = null;
     let micAtivo = false, cameraAtiva = false, telaAtiva = false;
 
     let peer = null;
     let currentCall = null;
-    let dataConnection = null; // Canal de dados ativo com o amigo remoto
+    let dataConnection = null;
 
-    // Canvas Animação Setup
     const canvas = document.getElementById('fx-canvas'); 
     const ctx = canvas.getContext('2d'); 
     let particles = [];
     let waveOffset = 0; 
-    let auroraTime = 0; // Controla o tempo/movimento das ondas de aurora boreal
+    let auroraTime = 0;
 
     window.addEventListener('DOMContentLoaded', () => {
         const salvoUser = localStorage.getItem('astryxz_user');
@@ -406,9 +394,8 @@
                     document.getElementById('upload-account-text').innerHTML = "Foto updated com <b>sucesso!</b>";
                     injetarMensagemSistema("Sua foto de perfil foi atualizada.");
                     
-                    // Se estiver em uma conexão de dados ativa, envia o avatar atualizado
                     if(dataConnection && dataConnection.open) {
-                        dataConnection.send({ type: 'identity', name: localStorage.getItem('astryxz_user'), avatar: base64AvatarData });
+                        dataConnection.send({ type: 'identity', name: localStorage.getItem('astryxz_user'), avatar: base64AvatarData, isStreaming: (cameraAtiva || telaAtiva) });
                     }
                 }
             };
@@ -449,7 +436,7 @@
         injetarMensagemSistema(`Nome operacional alterado para: "${novoNome}".`);
         
         if(dataConnection && dataConnection.open) {
-            dataConnection.send({ type: 'identity', name: novoNome, avatar: base64AvatarData });
+            dataConnection.send({ type: 'identity', name: novoNome, avatar: base64AvatarData, isStreaming: (cameraAtiva || telaAtiva) });
         }
     }
 
@@ -511,7 +498,7 @@
         });
     }
 
-    /* WEBRTC REAL - CONFIGURAÇÃO DO PEERJS */
+    /* WEBRTC PEERJS */
     function initPeerConnection() {
         peer = new Peer(undefined, { debug: 1 });
 
@@ -519,34 +506,28 @@
             currentRoomCode = id;
             document.getElementById('generated-code-box').textContent = currentRoomCode;
             document.getElementById('room-id-display').textContent = `SUA PORTA: ${currentRoomCode}`;
-            injetarMensagemSistema(`Estação sincronizada com a Nuvem. Sua chave de conexão é [${currentRoomCode}].`);
+            injetarMensagemSistema(`Estação sincronizada. Sua chave de conexão é [${currentRoomCode}].`);
         });
 
-        // Evento para quando o canal de texto/dados é aberto vindo do seu amigo
         peer.on('connection', (conn) => {
             setupDataChannel(conn);
         });
 
-        // Evento disparado quando alguém liga para você
         peer.on('call', async (call) => {
-            injetarMensagemSistema(`Recebendo conexão de entrada na porta ativa...`);
+            injetarMensagemSistema(`Recebendo conexão de entrada de hardware...`);
             currentCall = call;
             
-            await verificarGarantiaDeStreamLocal();
+            adicionarMockAudioSeVazio();
             call.answer(combinedStream);
             switchTab('voice', document.getElementById('btn-tab-voice'));
             
             call.on('stream', (remoteStream) => {
                 renderizarVideoDoAmigo(remoteStream, call.peer);
             });
-            call.on('close', () => {
-                removerVideoDoAmigo(call.peer);
-            });
         });
 
         peer.on('error', (err) => {
-            console.error("Erro no canal de voz PeerJS:", err);
-            alert("Não foi possível conectar à porta informada. Verifique se o código está correto.");
+            console.error("Erro WebRTC:", err);
         });
     }
 
@@ -554,11 +535,10 @@
         if(currentRoomCode) {
             document.getElementById('generated-code-box').textContent = currentRoomCode;
             document.getElementById('room-id-display').textContent = `SUA PORTA: ${currentRoomCode}`;
-            injetarMensagemSistema(`Sua porta de comunicação atualizada na UI: [${currentRoomCode}]. Compartilhe com seu amigo.`);
+            injetarMensagemSistema(`Sua porta de comunicação na UI: [${currentRoomCode}].`);
         }
     }
 
-    // Ligar/Aceder à porta do seu amigo remoto
     async function conectarViaCodigoPorta() {
         const codeInput = document.getElementById('input-join-code').value.trim();
         if(!codeInput) return;
@@ -566,13 +546,12 @@
         document.getElementById('room-id-display').textContent = `SALA: ${codeInput}`;
         switchTab('voice', document.getElementById('btn-tab-voice'));
         
-        injetarMensagemSistema(`Tentando pareamento WebRTC na porta remota [${codeInput}]...`);
+        injetarMensagemSistema(`Pareando WebRTC na porta remota [${codeInput}]...`);
         
-        // Abre o canal de dados para troca de informações de perfil e chat real
         const conn = peer.connect(codeInput);
         setupDataChannel(conn);
 
-        await verificarGarantiaDeStreamLocal();
+        adicionarMockAudioSeVazio();
 
         const call = peer.call(codeInput, combinedStream);
         currentCall = call;
@@ -580,37 +559,42 @@
         call.on('stream', (remoteStream) => {
             renderizarVideoDoAmigo(remoteStream, codeInput);
         });
-        call.on('close', () => {
-            removerVideoDoAmigo(codeInput);
-        });
 
         document.getElementById('input-join-code').value = "";
     }
 
-    // Configura e gerencia o canal de dados em tempo real (Chat real e Perfis)
     function setupDataChannel(conn) {
         dataConnection = conn;
         
         dataConnection.on('open', () => {
-            // Assim que o canal abre, envia os dados locais para o amigo mapear na interface dele
             dataConnection.send({
                 type: 'identity',
                 name: localStorage.getItem('astryxz_user') || "Operador",
-                avatar: base64AvatarData
+                avatar: base64AvatarData,
+                isStreaming: (cameraAtiva || telaAtiva)
             });
         });
 
         dataConnection.on('data', (data) => {
             if(data && data.type === 'identity') {
-                // Guarda temporariamente os dados do amigo remoto na estrutura DOM
-                const amigoCard = document.getElementById(conn.peer);
-                if(amigoCard) {
-                    const nameLabel = amigoCard.querySelector('.voice-card-name');
-                    if(nameLabel) nameLabel.textContent = data.name;
-                }
-                // Atribui propriedades customizadas ao objeto de conexão para usar no chat secundário
                 dataConnection.peerName = data.name;
                 dataConnection.peerAvatar = data.avatar;
+
+                const amigoCard = document.getElementById(conn.peer);
+                if(amigoCard) {
+                    amigoCard.querySelector('.voice-card-name').textContent = data.name;
+                    amigoCard.querySelector('.voice-card-avatar').src = data.avatar;
+                    
+                    const remoteVid = document.getElementById(`video-element-${conn.peer}`);
+                    const avatarBox = document.getElementById(`avatar-container-${conn.peer}`);
+                    if(data.isStreaming) {
+                        remoteVid.style.display = 'block';
+                        avatarBox.style.display = 'none';
+                    } else {
+                        remoteVid.style.display = 'none';
+                        avatarBox.style.display = 'flex';
+                    }
+                }
             }
             if(data && data.type === 'chat') {
                 const time = new Date().toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'});
@@ -626,17 +610,23 @@
                 const s = document.getElementById('chat-screen'); s.scrollTop = s.scrollHeight;
             }
         });
+
+        dataConnection.on('close', () => {
+            removerVideoDoAmigo(conn.peer);
+        });
     }
 
-    // Auxiliar para injetar dinamicamente a box de vídeo do amigo remoto no Grid
     function renderizarVideoDoAmigo(remoteStream, amigoId) {
         const grid = document.getElementById('voice-users-grid');
         
         if(document.getElementById(amigoId)) {
-            document.getElementById(amigoId).remove();
+            const remoteVideoEl = document.getElementById(`video-element-${amigoId}`);
+            if(remoteVideoEl) remoteVideoEl.srcObject = remoteStream;
+            return;
         }
 
-        const amigoNomeInicial = (dataConnection && dataConnection.peer === amigoId && dataConnection.peerName) ? dataConnection.peerName : `Terminal Remoto [${amigoId.substring(0,6)}]`;
+        const amigoNomeInicial = (dataConnection && dataConnection.peer === amigoId && dataConnection.peerName) ? dataConnection.peerName : `Usuário Conectado`;
+        const amigoAvatarInicial = (dataConnection && dataConnection.peer === amigoId && dataConnection.peerAvatar) ? dataConnection.peerAvatar : "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/></svg>";
 
         const boxHtml = `
             <div class="user-video-card" id="${amigoId}">
@@ -644,7 +634,10 @@
                     <span class="voice-card-mic-status">🎤 Conectado</span>
                     <button class="btn-fullscreen-card" onclick="toggleAbsoluteFullscreen('${amigoId}')">🔲</button>
                 </div>
-                <video id="video-element-${amigoId}" class="video-render-element" autoplay playsinline style="display:block;"></video>
+                <video id="video-element-${amigoId}" class="video-render-element" autoplay playsinline style="display:none;"></video>
+                <div class="voice-card-center-ui" id="avatar-container-${amigoId}">
+                    <img src="${amigoAvatarInicial}" class="voice-card-avatar" alt="Avatar">
+                </div>
                 <span class="voice-card-name">${amigoNomeInicial}</span>
             </div>
         `;
@@ -653,8 +646,20 @@
         
         const remoteVideoEl = document.getElementById(`video-element-${amigoId}`);
         remoteVideoEl.srcObject = remoteStream;
-        
-        injetarMensagemSistema(`Sucesso! Conexão ponto-a-ponto estabelecida com o terminal remoto.`);
+
+        if(remoteStream.getVideoTracks().length > 0) {
+            remoteVideoEl.style.display = 'block';
+            document.getElementById(`avatar-container-${amigoId}`).style.display = 'none';
+        }
+
+        remoteStream.onaddtrack = () => {
+            if(remoteStream.getVideoTracks().length > 0) {
+                remoteVideoEl.style.display = 'block';
+                document.getElementById(`avatar-container-${amigoId}`).style.display = 'none';
+            }
+        };
+
+        injetarMensagemSistema(`Sucesso! Conexão estabelecida com o terminal.`);
     }
 
     function removerVideoDoAmigo(amigoId) {
@@ -665,46 +670,58 @@
         }
     }
 
-    async function verificarGarantiaDeStreamLocal() {
-        if (!combinedStream) {
+    function adicionarMockAudioSeVazio() {
+        if (combinedStream.getTracks().length === 0) {
             try {
-                localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                combinedStream = localAudioStream;
-                micAtivo = true;
-                document.getElementById('btn-voice-mic').classList.add('active-green');
-                document.getElementById('voice-status-label').textContent = "🎤 Ligado";
-            } catch(e) {
                 const mockCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const mockDst = mockCtx.createMediaStreamDestination();
-                combinedStream = mockDst.stream;
-            }
+                mockDst.stream.getTracks().forEach(t => combinedStream.addTrack(t));
+            } catch(e) { console.error("Erro ao gerar mock audio track:", e); }
         }
     }
 
-    function atualizarStreamUnificado() {
-        const tracks = [];
-        if (localAudioStream && localAudioStream.getAudioTracks().length > 0) {
-            tracks.push(localAudioStream.getAudioTracks()[0]);
+    function atualizarStreamUnificado(videoTrack) {
+        // Limpa tracks antigos para não acumular lixo local
+        combinedStream.getVideoTracks().forEach(track => {
+            track.stop();
+            combinedStream.removeTrack(track);
+        });
+
+        if (videoTrack) {
+            combinedStream.addTrack(videoTrack);
         }
-        if (telaAtiva && localScreenStream) {
-            tracks.push(localScreenStream.getVideoTracks()[0]);
-        } else if (cameraAtiva && localWebcamStream) {
-            tracks.push(localWebcamStream.getVideoTracks()[0]);
-        }
-        
-        combinedStream = new MediaStream(tracks);
-        
+
+        // CORREÇÃO CRUCIAL: Bloqueia a execução se a conexão WebRTC não estiver estável ('stable')
         if (currentCall && currentCall.peerConnection) {
-            const senders = currentCall.peerConnection.getSenders();
-            senders.forEach(sender => {
-                if (sender.track && sender.track.kind === 'video') {
-                    const videoTrack = tracks.find(t => t.kind === 'video');
-                    if (videoTrack) sender.replaceTrack(videoTrack);
+            const pc = currentCall.peerConnection;
+            
+            // Se o estado estiver fechado ou quebrado, aborta a injeção perigosa
+            if (pc.signalingState === "closed") return;
+
+            try {
+                const senders = pc.getSenders();
+                const senderVideo = senders.find(s => s.track && s.track.kind === 'video');
+                
+                if (senderVideo) {
+                    // Substituição limpa sem invocar addTrack concorrente
+                    senderVideo.replaceTrack(videoTrack || null).catch(e => {
+                        console.warn("Substituição adiada por sincronia de sinalização:", e);
+                    });
+                } else if (videoTrack && pc.signalingState === "stable") {
+                    // Só executa o addTrack se o canal estiver totalmente estável e livre de negociações provisórias
+                    pc.addTrack(videoTrack, combinedStream);
                 }
-                if (sender.track && sender.track.kind === 'audio') {
-                    const audioTrack = tracks.find(t => t.kind === 'audio');
-                    if (audioTrack) sender.replaceTrack(audioTrack);
-                }
+            } catch (err) {
+                console.warn("Gerenciamento de tracks ignorado em estado transicional:", err);
+            }
+        }
+
+        if(dataConnection && dataConnection.open) {
+            dataConnection.send({
+                type: 'identity',
+                name: localStorage.getItem('astryxz_user'),
+                avatar: base64AvatarData,
+                isStreaming: (cameraAtiva || telaAtiva)
             });
         }
     }
@@ -715,11 +732,11 @@
             card.classList.remove('maximized-fullscreen');
         } else {
             document.querySelectorAll('.user-video-card').forEach(c => c.classList.remove('maximized-fullscreen'));
-            card.classList.add('maximized-fullscreen');
+            card.add('maximized-fullscreen');
         }
     }
 
-    /* HARDWARE MULTIMÍDIA */
+    /* HARDWARE CONTROLLER */
     async function toggleMicHardware() {
         const btn = document.getElementById('btn-voice-mic'), label = document.getElementById('voice-status-label'), selfCard = document.getElementById('voice-card-self');
         if (!micAtivo) {
@@ -727,6 +744,14 @@
                 localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 micAtivo = true; btn.classList.add('active-green'); label.textContent = "🎤 Ligado";
                 
+                localAudioStream.getAudioTracks().forEach(track => combinedStream.addTrack(track));
+                
+                if (currentCall && currentCall.peerConnection) {
+                    const senders = currentCall.peerConnection.getSenders();
+                    const senderAudio = senders.find(s => s.track && s.track.kind === 'audio');
+                    if(senderAudio) senderAudio.replaceTrack(localAudioStream.getAudioTracks()[0]);
+                }
+
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = audioContext.createAnalyser(); microphoneSource = audioContext.createMediaStreamSource(localAudioStream);
                 javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
@@ -737,64 +762,76 @@
                     let values = 0; for (let i = 0; i < array.length; i++) { values += array[i]; }
                     if ((values / array.length) > 12) { selfCard.classList.add('speaking'); } else { selfCard.classList.remove('speaking'); }
                 };
-                atualizarStreamUnificado();
             } catch (err) { alert("Microfone indisponível ou permissão negada."); }
         } else {
-            if(localAudioStream) localAudioStream.getTracks().forEach(track => track.stop());
+            if(localAudioStream) {
+                localAudioStream.getTracks().forEach(track => {
+                    track.stop();
+                    combinedStream.removeTrack(track);
+                });
+            }
             if(javascriptNode) javascriptNode.disconnect();
             micAtivo = false; btn.classList.remove('active-green'); label.textContent = "🎤 Desligado"; selfCard.classList.remove('speaking');
-            atualizarStreamUnificado();
         }
     }
 
     async function toggleCameraHardware() {
-        const btn = document.getElementById('btn-voice-camera'), videoEl = document.getElementById('webcam-stream-element'), avatarBox = document.getElementById('voice-avatar-container-self');
+        const btn = document.getElementById('btn-voice-camera'), videoEl = document.getElementById('shared-stream-element'), avatarBox = document.getElementById('voice-avatar-container-self');
+        
+        if (telaAtiva) apagarApresentacaoTela();
+
         if (!cameraAtiva) {
             try {
-                localWebcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
-                videoEl.srcObject = localWebcamStream; videoEl.style.display = 'block'; avatarBox.style.display = 'none';
+                localVideoStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+                videoEl.srcObject = localVideoStream; videoEl.style.display = 'block'; avatarBox.style.display = 'none';
                 cameraAtiva = true; btn.classList.add('active-green');
-                atualizarStreamUnificado();
+                
+                atualizarStreamUnificado(localVideoStream.getVideoTracks()[0]);
             } catch (err) { alert("Câmera não encontrada ou permissão recusada."); }
         } else {
-            if (localWebcamStream) localWebcamStream.getTracks().forEach(track => track.stop());
-            videoEl.style.display = 'none'; if(!telaAtiva) avatarBox.style.display = 'flex';
+            if (localVideoStream) localVideoStream.getTracks().forEach(track => track.stop());
+            videoEl.style.display = 'none'; avatarBox.style.display = 'flex';
             cameraAtiva = false; btn.classList.remove('active-green');
-            atualizarStreamUnificado();
+            atualizarStreamUnificado(null);
         }
     }
 
     async function toggleScreenShareHardware() {
-        const btn = document.getElementById('btn-voice-screen'), videoEl = document.getElementById('screen-stream-element'), avatarBox = document.getElementById('voice-avatar-container-self');
+        const btn = document.getElementById('btn-voice-screen'), videoEl = document.getElementById('shared-stream-element'), avatarBox = document.getElementById('voice-avatar-container-self');
+        
+        if (cameraAtiva) {
+            if (localVideoStream) localVideoStream.getTracks().forEach(track => track.stop());
+            cameraAtiva = false; document.getElementById('btn-voice-camera').classList.remove('active-green');
+        }
+
         if (!telaAtiva) {
             try {
-                localScreenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                videoEl.srcObject = localScreenStream; videoEl.style.display = 'block'; avatarBox.style.display = 'none';
+                localVideoStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                videoEl.srcObject = localVideoStream; videoEl.style.display = 'block'; avatarBox.style.display = 'none';
                 telaAtiva = true; btn.classList.add('active-green');
-                localScreenStream.getVideoTracks()[0].onended = () => { apagarApresentacaoTela(); };
-                atualizarStreamUnificado();
+                localVideoStream.getVideoTracks()[0].onended = () => { apagarApresentacaoTela(); };
+                
+                atualizarStreamUnificado(localVideoStream.getVideoTracks()[0]);
             } catch (err) { console.error(err); }
         } else { apagarApresentacaoTela(); }
     }
 
     function apagarApresentacaoTela() {
-        const btn = document.getElementById('btn-voice-screen'), videoEl = document.getElementById('screen-stream-element'), avatarBox = document.getElementById('voice-avatar-container-self');
-        if (localScreenStream) localScreenStream.getTracks().forEach(track => track.stop());
-        videoEl.style.display = 'none'; if (!cameraAtiva) avatarBox.style.display = 'flex';
+        const btn = document.getElementById('btn-voice-screen'), videoEl = document.getElementById('shared-stream-element'), avatarBox = document.getElementById('voice-avatar-container-self');
+        if (localVideoStream) localVideoStream.getTracks().forEach(track => track.stop());
+        videoEl.style.display = 'none'; avatarBox.style.display = 'flex';
         telaAtiva = false; btn.classList.remove('active-green');
-        atualizarStreamUnificado();
+        atualizarStreamUnificado(null);
     }
 
     function sairDaCall() {
-        if(currentCall) {
-            currentCall.close();
-        }
-        if(localAudioStream) localAudioStream.getTracks().forEach(track => track.stop());
-        if(localWebcamStream) localWebcamStream.getTracks().forEach(track => track.stop());
-        if(localScreenStream) localScreenStream.getTracks().forEach(track => track.stop());
+        if(currentCall) currentCall.close();
+        if(dataConnection) dataConnection.close();
         
-        document.getElementById('webcam-stream-element').style.display = 'none';
-        document.getElementById('screen-stream-element').style.display = 'none';
+        if(localAudioStream) localAudioStream.getTracks().forEach(track => track.stop());
+        if(localVideoStream) localVideoStream.getTracks().forEach(track => track.stop());
+        
+        document.getElementById('shared-stream-element').style.display = 'none';
         document.getElementById('voice-avatar-container-self').style.display = 'flex';
         
         document.querySelectorAll('.user-video-card').forEach(card => {
@@ -802,7 +839,7 @@
         });
 
         micAtivo = cameraAtiva = telaAtiva = false;
-        combinedStream = null;
+        combinedStream = new MediaStream();
         document.getElementById('btn-voice-mic').classList.remove('active-green');
         document.getElementById('btn-voice-camera').classList.remove('active-green');
         document.getElementById('btn-voice-screen').classList.remove('active-green');
@@ -824,7 +861,6 @@
             const user = localStorage.getItem('astryxz_user') || "Operador";
             const time = new Date().toLocaleTimeString('pt-PT', {hour: '2-digit', minute:'2-digit'});
             
-            // Exibe localmente no chat com a sua foto base64 real
             document.getElementById('chat-screen').insertAdjacentHTML('beforeend', `
                 <div class="chat-msg">
                     <img src="${base64AvatarData}" class="chat-msg-avatar">
@@ -835,7 +871,6 @@
                 </div>
             `);
             
-            // Dispara para o amigo remoto via DataChannel
             if(dataConnection && dataConnection.open) {
                 dataConnection.send({ type: 'chat', message: msgText });
             }
@@ -871,7 +906,7 @@
     function iniciarRelogio() { setInterval(() => { document.getElementById('sys-clock').textContent = new Date().toLocaleTimeString('pt-PT'); }, 1000); }
     function changeTheme(themeName, btnElement) { currentTheme = themeName; document.body.className = themeName === 'aurora' ? '' : 'theme-' + themeName; document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active')); btnElement.classList.add('active'); setupCanvas(); }
 
-    /* BACKGROUND ANIMATION ENGINE */
+    /* BACKGROUND CANVAS ENGINE */
     window.addEventListener('resize', setupCanvas);
     function setupCanvas() {
         canvas.width = window.innerWidth; 
@@ -904,13 +939,11 @@
         ctx.fillStyle = `rgba(${bgFills[currentTheme] || bgFills['aurora']}, 0.25)`; 
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 1. DESENHAR FUNDOS COMPLEXOS / ILUSTRAÇÕES 
         if (currentTheme === 'aurora') {
             auroraTime += 0.004;
             ctx.save();
             ctx.globalCompositeOperation = 'screen';
             
-            // Camadas de Ondas Dinâmicas Fluorescentes simulando a Aurora Boreal
             for(let i = 0; i < 3; i++) {
                 let gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
                 if(i === 0) {
@@ -931,7 +964,6 @@
                 ctx.beginPath();
                 ctx.moveTo(0, canvas.height);
                 
-                // Algoritmo matemático para gerar curvas orgânicas
                 for (let x = 0; x <= canvas.width; x += 30) {
                     let factor1 = (x * 0.002) + auroraTime + (i * 5);
                     let factor2 = (x * 0.005) - (auroraTime * 0.5);
@@ -1047,7 +1079,6 @@
             ctx.fillRect(canvas.width - 105, canvas.height - 130, 60, 10);
         }
 
-        // 2. RENDERIZAR E MOVER AS PARTÍCULAS
         particles.forEach(p => {
             p.x += p.vx; 
             p.y += p.vy;
@@ -1087,7 +1118,6 @@
                 ctx.fill();
             }
             else if (currentTheme === 'aurora') {
-                // No tema aurora, partículas se movem sutilmente para cima simulando poeira estelar
                 p.vy = -0.15 - (p.size * 0.05);
                 ctx.fillStyle = `rgba(56, 189, 248, ${p.weight * 0.6})`;
                 ctx.beginPath();
